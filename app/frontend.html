@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PKI Dashboard Central</title>
+    <!-- Usa tipografía moderna de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --danger: #ef4444;
+            --danger-hover: #dc2828;
+            --warning: #f59e0b;
+            --warning-hover: #d97706;
+            --info: #0ea5e9;
+            --info-hover: #0284c7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 0.2) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 0.2) 0, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            box-shadow: 10px 0 30px -10px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .sidebar h2 {
+            margin-top: 0;
+            margin-bottom: 2rem;
+            font-weight: 600;
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .nav-item {
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--text-main);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Main Content Area Styling */
+        .main-content {
+            flex: 1;
+            padding: 4rem 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-y: auto;
+        }
+
+        .glass-panel {
+            width: 100%;
+            max-width: 550px;
+            padding: 2.5rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .view-section {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h3 {
+            margin-top: 0;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+
+        select option {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            margin-top: 1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.btn-danger {
+            background-color: var(--danger);
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+        }
+
+        button.btn-danger:hover {
+            background-color: var(--danger-hover);
+            box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+        }
+
+        button.btn-warning {
+            background-color: var(--warning);
+            color: #000;
+            box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.2);
+        }
+
+        button.btn-warning:hover {
+            background-color: var(--warning-hover);
+            box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.3);
+        }
+
+        button.btn-info {
+            background-color: var(--info);
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);
+        }
+
+        button.btn-info:hover {
+            background-color: var(--info-hover);
+            box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);
+        }
+
+        .response-area {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #a7f3d0;
+            display: none;
+            word-break: break-all;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .response-area.error {
+            color: #fca5a5;
+            border-color: rgba(248, 113, 113, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <h2>GestorCentral PKI</h2>
+        <div class="nav-item active" onclick="switchTab('alta')"> Alta de Identidad</div>
+        <div class="nav-item" onclick="switchTab('revocar')"> Revocación</div>
+        <div class="nav-item" onclick="switchTab('baja')"> Baja del Sistema</div>
+        <div class="nav-item" onclick="switchTab('rastreo')"> Rastreo (Auditoría)</div>
+    </nav>
+
+    <!-- CONTENT AREA -->
+    <main class="main-content">
+        <div class="glass-panel">
+
+            <!-- ALTA TAB -->
+            <section id="alta" class="view-section active">
+                <h3>Alta de Identidad</h3>
+                <p class="subtitle">Emite certificados y registra nuevos usuarios en la PKI.</p>
+                <form id="altaForm">
+                    <div class="form-group">
+                        <label for="alta_actor_id">ID Quien Autoriza (Actor):</label>
+                        <input type="number" id="alta_actor_id" value="0" required placeholder="0 para Bootstrap Admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="alta_nombre">Nombre Completo:</label>
+                        <input type="text" id="alta_nombre" required placeholder="Ej. Viviana CL">
+                    </div>
+                    <div class="form-group">
+                        <label for="alta_email">Correo Institucional:</label>
+                        <input type="email" id="alta_email" required placeholder="correo@ejemplo.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="alta_rol">Nivel de Acceso:</label>
+                        <select id="alta_rol" required>
+                            <option value="Admin">Administrador (Nivel 1)</option>
+                            <option value="Coordinator">Coordinador (Nivel 2)</option>
+                            <option value="Operative">Operativo (Nivel 3)</option>
+                            <option value="External">Externo (Nivel 4)</option>
+                        </select>
+                    </div>
+                    <button type="submit" id="altaBtn">Alta de Certificado</button>
+                </form>
+                <div id="alta_res" class="response-area"></div>
+            </section>
+
+            <!-- REVOCACION TAB -->
+            <section id="revocar" class="view-section">
+                <h3>Revocación</h3>
+                <p class="subtitle">Deshabilita un certificado comprometido o no deseado temporalmente.</p>
+                <form id="revocarForm">
+                    <div class="form-group">
+                        <label for="revocar_actor_id">ID de quien solicita revocación (Actor):</label>
+                        <input type="number" id="revocar_actor_id" required placeholder="Tu ID de usuario">
+                    </div>
+                    <div class="form-group">
+                        <label for="revocar_target_id">ID del Usuario Objetivo a Revocar:</label>
+                        <input type="number" id="revocar_target_id" required placeholder="ID de la Identidad">
+                    </div>
+                    <div class="form-group">
+                        <label for="revocar_estado">Razón / Nuevo Estado:</label>
+                        <input type="text" id="revocar_estado" value="REVOCADO" readonly>
+                    </div>
+                    <button type="submit" class="btn-warning" id="revocarBtn">Ejecutar Revocación</button>
+                </form>
+                <div id="revocar_res" class="response-area"></div>
+            </section>
+
+            <!-- BAJA TAB -->
+            <section id="baja" class="view-section">
+                <h3>Baja del Sistema</h3>
+                <p class="subtitle">Retira permanentemente una identidad y sus privilegios (Soft-Delete).</p>
+                <form id="bajaForm">
+                    <div class="form-group">
+                        <label for="baja_actor_id">ID de quien solicita la baja (Actor):</label>
+                        <input type="number" id="baja_actor_id" required placeholder="Tu ID de usuario">
+                    </div>
+                    <div class="form-group">
+                        <label for="baja_target_id">ID del Usuario Objetivo a Eliminar:</label>
+                        <input type="number" id="baja_target_id" required placeholder="ID de la Identidad">
+                    </div>
+                    <div class="form-group">
+                        <label for="baja_estado">Acción Confirmada:</label>
+                        <input type="text" id="baja_estado" value="BAJA" readonly>
+                    </div>
+                    <button type="submit" class="btn-danger" id="bajaBtn">Dar de Baja Definitiva</button>
+                </form>
+                <div id="baja_res" class="response-area"></div>
+            </section>
+
+            <!-- RASTREO TAB -->
+            <section id="rastreo" class="view-section">
+                <h3>Auditoría (Rastreo)</h3>
+                <p class="subtitle">Consulta los rastros inmutables generados para un usuario.</p>
+                <form id="rastreoForm">
+                    <div class="form-group">
+                        <label for="rastreo_actor_id">ID de quien audita (Actor):</label>
+                        <input type="number" id="rastreo_actor_id" required placeholder="Tu ID de Auditor">
+                    </div>
+                    <div class="form-group">
+                        <label for="rastreo_target_id">ID de la Identidad a auditar:</label>
+                        <input type="number" id="rastreo_target_id" required placeholder="Dejar en blanco para global">
+                    </div>
+                    <button type="submit" class="btn-info" id="rastreoBtn">Solicitar Rastreo</button>
+                </form>
+                <div id="rastreo_res" class="response-area"></div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // Logica para cambiar pestañas
+        function switchTab(tabId) {
+            // Remover 'active' de todos los nav items y seccion vista
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+
+            // Re-añadir 'active' al presionado
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            // Ocultar response divs viejos si cambiamos de tab
+            document.querySelectorAll('.response-area').forEach(el => el.style.display = 'none');
+        }
+
+        // Helper para procesar Fetch APIs y renderizar visualmente
+        async function fetchAPI(endpoint, method, payload, btnId, resDivId, originalText) {
+            const btn = document.getElementById(btnId);
+            const resDiv = document.getElementById(resDivId);
+
+            btn.textContent = 'Procesando...';
+            btn.style.opacity = '0.7';
+            resDiv.style.display = 'none';
+            resDiv.className = 'response-area';
+
+            try {
+                let options = {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                if (method !== 'GET') {
+                    options.body = JSON.stringify(payload);
+                }
+
+                const res = await fetch(endpoint, options);
+                const data = await res.json();
+
+                resDiv.style.display = 'block';
+
+                if (res.ok) {
+                    // Formatear JSON de respuesta para lectura limpia
+                    resDiv.innerHTML = ` <b>Operación Éxitosa</b><br><br><code>${JSON.stringify(data, null, 2).replace(/\n/g, '<br>').replace(/ /g, '&nbsp;')}</code>`;
+                } else {
+                    resDiv.classList.add('error');
+                    resDiv.innerHTML = ` <b>Bloqueo / Excepción:</b> ${data.detail || 'Ocurrió un problema.'}`;
+                }
+            } catch (err) {
+                resDiv.style.display = 'block';
+                resDiv.classList.add('error');
+                resDiv.innerHTML = ` Error de red: El servidor FastAPI no contestó.`;
+            } finally {
+                btn.textContent = originalText;
+                btn.style.opacity = '1';
+            }
+        }
+
+        // ALTA
+        document.getElementById('altaForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const payload = {
+                actor_id: parseInt(document.getElementById('alta_actor_id').value),
+                nombre: document.getElementById('alta_nombre').value,
+                email: document.getElementById('alta_email').value,
+                rol: document.getElementById('alta_rol').value
+            };
+            fetchAPI('/api/v1/identities/alta', 'POST', payload, 'altaBtn', 'alta_res', 'Alta de Certificado');
+        });
+
+        // REVOCAR
+        document.getElementById('revocarForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const target_id = document.getElementById('revocar_target_id').value;
+            const payload = {
+                actor_id: parseInt(document.getElementById('revocar_actor_id').value),
+                estado: document.getElementById('revocar_estado').value
+            };
+            fetchAPI(`/api/v1/identities/${target_id}/revocar`, 'PUT', payload, 'revocarBtn', 'revocar_res', 'Ejecutar Revocación');
+        });
+
+        // BAJA
+        document.getElementById('bajaForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const target_id = document.getElementById('baja_target_id').value;
+            const payload = {
+                actor_id: parseInt(document.getElementById('baja_actor_id').value),
+                estado: document.getElementById('baja_estado').value
+            };
+            fetchAPI(`/api/v1/identities/${target_id}/baja`, 'DELETE', payload, 'bajaBtn', 'baja_res', 'Dar de Baja Definitiva');
+        });
+
+        // RASTREO
+        document.getElementById('rastreoForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const target_id = document.getElementById('rastreo_target_id').value || 0;
+            const actor_id = document.getElementById('rastreo_actor_id').value;
+
+            // Los Gets usan variables de URL, no payload
+            fetchAPI(`/api/v1/identities/${target_id}/rastreo?actor_id=${actor_id}`, 'GET', null, 'rastreoBtn', 'rastreo_res', 'Solicitar Rastreo');
+        });
+    </script>
+</body>
+
+</html>
