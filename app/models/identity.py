@@ -8,6 +8,7 @@ class Identity(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, index=True)
     email = Column(String, unique=True, index=True)
+    password_hash = Column(String) # Hash bcrypt de la contraseña
     rol = Column(String)  
     public_key_pem = Column(String)  # Llave pública de la identidad
     certificate_pem = Column(String)  # Certificado X.509 en formato PEM
