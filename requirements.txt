@@ -17,4 +17,4 @@ python-jose[cryptography]==3.3.0
 python-multipart==0.0.5
 
 # Utilidades
-email-validator==1.1.3u
+email-validator==1.1.3
