@@ -2,13 +2,12 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 class IdentityCreate(BaseModel):
-    actor_id: int  # ID del usuario que está haciendo la petición (0 para bootstrap de sistema)
     nombre: str
     email: EmailStr
+    password: str  # Added strict requirement for initial password
     rol: str       # Opciones: Admin, Coordinator, Operative, External
 
 class IdentityStatusUpdate(BaseModel):
-    actor_id: int
     estado: str    # REVOCADO, BAJA, etc.
 
 class IdentityResponse(BaseModel):
@@ -20,3 +19,10 @@ class IdentityResponse(BaseModel):
     
     class Config:
         orm_mode = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
