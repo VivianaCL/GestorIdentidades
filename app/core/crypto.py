@@ -133,7 +133,7 @@ def build_root_ca():
     # Retornamos los objetos y el PEM para guardar la master CA.
     return private_key, cert, private_pem, cert_pem
 
-def generate_user_certificate(public_key, user_name: str, ca_private_key, ca_cert):
+def generate_user_certificate(public_key, user_name: str, ca_private_key, ca_cert, days_valid=365  ):
     """
     Emite un certificado de identidad X.509 para un usuario,
     firmado digitalmente por la llave privada de la CA (Acreditando su identidad).
@@ -156,8 +156,39 @@ def generate_user_certificate(public_key, user_name: str, ca_private_key, ca_cer
         datetime.datetime.utcnow()
     ).not_valid_after(
         # Validez típica de identidad: 1 Año
-        datetime.datetime.utcnow() + datetime.timedelta(days=365)
+        datetime.datetime.utcnow() + datetime.timedelta(days=days_valid)
     ).sign(ca_private_key, hashes.SHA256(), default_backend())
     
     cert_pem = cert.public_bytes(serialization.Encoding.PEM)
     return cert_pem
+
+def create_ephemeral_certificate(user_name: str, duration_minutes: int, ca_private_key, ca_cert):
+    """
+    Crea un certificado efímero (temporal) con duración en minutos.
+    """
+    private_key, private_pem, public_key, public_pem = generate_key_pair()
+    
+    subject = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, u"MX"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Gestor de Identidades"),
+        x509.NameAttribute(NameOID.COMMON_NAME, str(user_name)),
+    ])
+    
+    now = datetime.datetime.utcnow()
+    
+    cert = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        ca_cert.subject
+    ).public_key(
+        public_key
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        now
+    ).not_valid_after(
+        now + datetime.timedelta(minutes=duration_minutes)
+    ).sign(ca_private_key, hashes.SHA256(), default_backend())
+    
+    cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+    return cert, cert_pem, private_pem, public_pem

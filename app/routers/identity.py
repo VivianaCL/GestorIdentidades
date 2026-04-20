@@ -3,9 +3,23 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db, create_identity, log_audit_event, update_identity_status, delete_identity, get_audit_logs
 from app.models.identity import Identity
 from app.schemas.identity import IdentityCreate, IdentityResponse, IdentityStatusUpdate
-from app.core.crypto import build_root_ca, generate_key_pair, generate_user_certificate, get_current_identity, get_password_hash
+from app.core.crypto import build_root_ca, generate_key_pair, generate_user_certificate, get_current_identity, get_password_hash, create_ephemeral_certificate
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+# Esquema para crear certificados efímeros
+class EphemeralCertRequest(BaseModel):
+    duration_minutes: int  # Duración en minutos
+
+
+# Esquema para crear usuario efímero
+class EphemeralUserRequest(BaseModel):
+    nombre: str
+    email: str
+    password: str  # Contraseña ingresada por el usuario
+    duration_minutes: int  # Duración en minutos
 
 
 # Jerarquía: Nivel más bajo en número tiene mayor poder.
@@ -25,7 +39,7 @@ def check_hierarchy(actor: Identity, target_role: str):
     actor_level = ROLE_LEVELS.get(actor.rol, 99)
     target_level = ROLE_LEVELS.get(target_role, 99)
     
-    if actor_level >= target_level:
+    if actor_level > target_level:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Acceso denegado: Un perfil '{actor.rol}' no puede realizar la acción sobre nivel '{target_role}'."
@@ -44,7 +58,7 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
     ca_priv, ca_cert, _, _ = build_root_ca()
     
     _, _, pub_obj, pub_pem = generate_key_pair()
-    user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert)
+    user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert, days_valid=365)
     
     hashed_password = get_password_hash(data.password)
     
@@ -87,6 +101,128 @@ def endpoint_audit_all(db: Session = Depends(get_db), current_user: Identity = D
     if current_user.rol != "Admin":
          raise HTTPException(status_code=403, detail="Lectura Global restringida. Sólo los roles Admin pueden ver el log completo.")
     return get_audit_logs(db, identity_id=None)
+
+@router.post("/ephemeral/create")
+def endpoint_create_ephemeral_cert(request: EphemeralCertRequest, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
+    """
+    VIII. CREAR CERTIFICADO EFÍMERO (Provisional para pruebas)
+    Genera un certificado temporal con duración especificada en minutos.
+    """
+    # Validar duración (mínimo 1 minuto, máximo 7 días)
+    if request.duration_minutes < 1 or request.duration_minutes > 7 * 24 * 60:
+        raise HTTPException(
+            status_code=400, 
+            detail="La duración debe estar entre 1 minuto y 7 días."
+        )
+    
+    try:
+        # Crear CA raíz
+        ca_private_key, ca_cert, _, _ = build_root_ca()
+        
+        # Crear certificado efímero
+        cert_obj, cert_pem, private_pem, public_pem = create_ephemeral_certificate(
+            user_name=current_user.email,
+            duration_minutes=request.duration_minutes,
+            ca_private_key=ca_private_key,
+            ca_cert=ca_cert
+        )
+        
+        # Registrar en auditoría
+        log_audit_event(
+            db=db,
+            identity_id=current_user.id,
+            actor_id=current_user.id,
+            accion="EPHEMERAL_CERT_CREATED",
+            detalles=f"Certificado efímero creado con duración de {request.duration_minutes} minuto(s)"
+        )
+        
+        return {
+            "success": True,
+            "certificate_pem": cert_pem.decode('utf-8') if isinstance(cert_pem, bytes) else cert_pem,
+            "private_key_pem": private_pem.decode('utf-8') if isinstance(private_pem, bytes) else private_pem,
+            "public_key_pem": public_pem.decode('utf-8') if isinstance(public_pem, bytes) else public_pem,
+            "valid_from": cert_obj.not_valid_before.isoformat(),
+            "valid_until": cert_obj.not_valid_after.isoformat(),
+            "duration_minutes": request.duration_minutes,
+            "message": f"Certificado efímero creado exitosamente. Expirará en {request.duration_minutes} minuto(s)."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear certificado efímero: {str(e)}")
+
+@router.post("/ephemeral/user")
+def endpoint_create_ephemeral_user(request: EphemeralUserRequest, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
+    """
+    IX. CREAR USUARIO EFÍMERO (Provisional para pruebas)
+    Genera un usuario temporal con certificado efímero.
+    """
+    # Validar duración (mínimo 1 minuto, máximo 7 días)
+    if request.duration_minutes < 1 or request.duration_minutes > 7 * 24 * 60:
+        raise HTTPException(
+            status_code=400, 
+            detail="La duración debe estar entre 1 minuto y 7 días."
+        )
+    
+    # Validar contraseña
+    if not request.password or len(request.password) < 4:
+        raise HTTPException(
+            status_code=400,
+            detail="La contraseña debe tener al menos 4 caracteres."
+        )
+    
+    # Verificar que el email no exista
+    if db.query(Identity).filter(Identity.email == request.email).first():
+        raise HTTPException(status_code=400, detail="El correo ya se encuentra enlazado a otra identidad.")
+    
+    try:
+        # Usar la contraseña proporcionada
+        hashed_password = get_password_hash(request.password)
+        
+        # Crear CA raíz
+        ca_private_key, ca_cert, _, _ = build_root_ca()
+        
+        # Crear certificado efímero
+        cert_obj, cert_pem, _, public_pem = create_ephemeral_certificate(
+            user_name=request.email,
+            duration_minutes=request.duration_minutes,
+            ca_private_key=ca_private_key,
+            ca_cert=ca_cert
+        )
+        
+        # Crear la identidad efímera en la DB
+        new_identity = create_identity(
+            db,
+            nombre=request.nombre,
+            email=request.email,
+            password_hash=hashed_password,
+            rol="External",  # Siempre rol más bajo para efímeros
+            public_key_pem=public_pem.decode('utf-8') if isinstance(public_pem, bytes) else public_pem,
+            certificate_pem=cert_pem.decode('utf-8') if isinstance(cert_pem, bytes) else cert_pem
+        )
+        
+        # Registrar en auditoría
+        log_audit_event(
+            db=db,
+            identity_id=new_identity.id,
+            actor_id=current_user.id,
+            accion="EPHEMERAL_USER_CREATED",
+            detalles=f"Usuario efímero creado: {request.email} con duración de {request.duration_minutes} minuto(s)"
+        )
+        
+        return {
+            "success": True,
+            "user_id": new_identity.id,
+            "nombre": request.nombre,
+            "email": request.email,
+            "password": request.password,
+            "certificate_pem": cert_pem.decode('utf-8') if isinstance(cert_pem, bytes) else cert_pem,
+            "public_key_pem": public_pem.decode('utf-8') if isinstance(public_pem, bytes) else public_pem,
+            "valid_from": cert_obj.not_valid_before.isoformat(),
+            "valid_until": cert_obj.not_valid_after.isoformat(),
+            "duration_minutes": request.duration_minutes,
+            "message": f"Usuario efímero creado exitosamente. Acceso válido hasta las {cert_obj.not_valid_after.strftime('%H:%M:%S')}."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear usuario efímero: {str(e)}")
 
 # ── Rutas dinámicas (con path parameter) ─────────────────────────────────────
 
