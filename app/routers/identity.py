@@ -55,21 +55,27 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
     if db.query(Identity).filter(Identity.email == data.email).first():
         raise HTTPException(status_code=400, detail="El correo ya se encuentra enlazado a otra identidad.")
     
-    ca_priv, ca_cert, _, _ = build_root_ca()
-    
-    _, _, pub_obj, pub_pem = generate_key_pair()
-    user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert, days_valid=365)
-    
+    # Solo Nivel 1 (Admin) y Nivel 2 (Coordinator) obtienen certificados
+    if data.rol in ("Admin", "Coordinator"):
+        ca_priv, ca_cert, _, _ = build_root_ca()
+        _, _, pub_obj, pub_pem = generate_key_pair()
+        user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert, days_valid=365)
+        pub_pem_str = pub_pem.decode('utf-8')
+        cert_pem_str = user_cert_pem.decode('utf-8')
+    else:
+        pub_pem_str = None
+        cert_pem_str = None
+
     hashed_password = get_password_hash(data.password)
-    
+
     new_identity = create_identity(
-        db, 
-        data.nombre, 
-        data.email, 
+        db,
+        data.nombre,
+        data.email,
         hashed_password,
-        data.rol, 
-        pub_pem.decode('utf-8'), 
-        user_cert_pem.decode('utf-8')
+        data.rol,
+        pub_pem_str,
+        cert_pem_str
     )
     
     log_audit_event(
