@@ -1128,11 +1128,6 @@
             </div>
           </div>
         </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <!-- ── Auditoría ──────────────────────────────────────────────── -->
         <div class="page" id="page-audit">
@@ -1340,6 +1335,13 @@
         if (document.getElementById("btn-new-user")) {
           document.getElementById("btn-new-user").style.display = "none";
         }
+      }
+
+      // Solo los administradores (nivel 1) pueden ver la pestaña de Certificados
+      if (ROLE_LEVELS[u.rol] === 1) {
+        document.getElementById("nav-certs").style.display = "flex";
+      } else {
+        document.getElementById("nav-certs").style.display = "none";
       }
 
       document.getElementById("login-pass").addEventListener("keydown", e => {
