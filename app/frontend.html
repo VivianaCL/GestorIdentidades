@@ -582,6 +582,12 @@
       border: 1px solid var(--border);
     }
 
+    .btn-baja {
+      background: rgba(139, 20, 20, .28);
+      color: #c0392b;
+      border: 1px solid rgba(139, 20, 20, .5);
+    }
+
     .action-group {
       display: flex;
       gap: 6px;
@@ -1021,6 +1027,7 @@
                     <th>Válido hasta</th>
                     <th>Estado</th>
                     <th>Algoritmo</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody id="certs-tbody"></tbody>
@@ -1227,6 +1234,7 @@
       user: null,
       users: [],
       filteredUsers: [],
+      certs: [],
     };
 
     const API = "";
@@ -1446,10 +1454,12 @@
         // Se pueden realizar acciones si el nivel del usuario actual es estrictamente inferior (mejor jerarquía) al objetivo
         if (currentUserLevel < targetUserLevel && u.email !== State.user.email) {
           if (u.estado === "ACTIVO") {
+            // Revocar solo aplica a usuarios con certificado (Nivel 1 y 2)
+            const hasCert = targetUserLevel <= 2;
             actions = `
           <div class="action-group">
-            <button class="btn-sm btn-danger" onclick="revokeUser(${u.id})">Revocar</button>
-            <button class="btn-sm btn-ghost"  onclick="deleteUser(${u.id})">Baja</button>
+            ${hasCert ? `<button class="btn-sm btn-danger" onclick="revokeUser(${u.id})">Revocar</button>` : ''}
+            <button class="btn-sm btn-baja"  onclick="deleteUser(${u.id})">Baja</button>
           </div>`;
           }
         }
@@ -1549,17 +1559,25 @@
 
     async function loadCerts() {
       document.getElementById("certs-tbody").innerHTML =
-        `<tr><td colspan="7" style="text-align:center;padding:24px"><span class="spinner"></span></td></tr>`;
+        `<tr><td colspan="8" style="text-align:center;padding:24px"><span class="spinner"></span></td></tr>`;
 
       const { ok, data } = await api("/api/v1/identities/certificates/all");
       const tbody = document.getElementById("certs-tbody");
 
-      if (!ok || !data.length) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="emoji">🏅</div><p>No hay certificados</p></div></td></tr>`;
+      if (!ok) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="emoji">🏅</div><p>No hay certificados</p></div></td></tr>`;
         return;
       }
 
-      tbody.innerHTML = data.map(c => {
+      // Solo mostrar usuarios que tienen certificado (Nivel 1 y 2)
+      State.certs = data.filter(c => c.certificate_pem);
+
+      if (!State.certs.length) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="emoji">🏅</div><p>No hay certificados</p></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = State.certs.map(c => {
         const badge = c.estado === "ACTIVO"
           ? `<span class="badge badge-valid">Válido</span>`
           : `<span class="badge badge-revoked">${c.estado}</span>`;
@@ -1573,8 +1591,24 @@
         <td style="font-size:12px;color:var(--muted)">—</td>
         <td>${badge}</td>
         <td style="font-size:11px;color:var(--muted)">RSA X.509</td>
+        <td><button class="btn-sm btn-primary" onclick="downloadCert(${c.id})">Descargar</button></td>
       </tr>`;
       }).join("");
+    }
+
+    function downloadCert(id) {
+      const cert = State.certs.find(c => c.id === id);
+      if (!cert || !cert.certificate_pem) return;
+      const filename = `cert_${cert.email.replace(/[@.]/g, '_')}.pem`;
+      const blob = new Blob([cert.certificate_pem], { type: 'application/x-pem-file' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     async function loadAudit() {
@@ -1609,10 +1643,13 @@
 
     function formatDate(iso) {
       if (!iso) return "—";
-      const d = new Date(iso);
+      // SQLite returns naive datetimes with no timezone suffix; treat them as UTC
+      const normalized = /[Z+]/.test(iso) ? iso : iso.replace(" ", "T") + "Z";
+      const d = new Date(normalized);
       return d.toLocaleString("es-MX", {
         year: "numeric", month: "short", day: "2-digit",
         hour: "2-digit", minute: "2-digit",
+        timeZone: "America/Mexico_City",
       });
     }
 
@@ -1660,8 +1697,9 @@
       document.getElementById("ephemeral-status").textContent = "VIGENTE ✓";
       document.getElementById("ephemeral-user-email").textContent = data.email;
       document.getElementById("ephemeral-user-password").textContent = data.password;
-      document.getElementById("ephemeral-valid-from").textContent = new Date(data.valid_from).toLocaleString("es-MX");
-      document.getElementById("ephemeral-valid-until").textContent = new Date(data.valid_until).toLocaleString("es-MX");
+      const normalizeTs = s => /[Z+]/.test(s) ? s : s.replace(" ", "T") + "Z";
+      document.getElementById("ephemeral-valid-from").textContent = new Date(normalizeTs(data.valid_from)).toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
+      document.getElementById("ephemeral-valid-until").textContent = new Date(normalizeTs(data.valid_until)).toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
       document.getElementById("ephemeral-cert").value = data.certificate_pem;
 
       // Guardar para usar en login test
