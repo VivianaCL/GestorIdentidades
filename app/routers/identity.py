@@ -5,6 +5,7 @@ from app.models.identity import Identity
 from app.schemas.identity import IdentityCreate, IdentityResponse, IdentityStatusUpdate
 from app.core.crypto import build_root_ca, generate_key_pair, generate_user_certificate, get_current_identity, get_password_hash, create_ephemeral_certificate
 from pydantic import BaseModel
+import datetime
 
 router = APIRouter()
 
@@ -12,6 +13,10 @@ router = APIRouter()
 # Esquema para crear certificados efímeros
 class EphemeralCertRequest(BaseModel):
     duration_minutes: int  # Duración en minutos
+
+# Esquema para renovar certificado
+class RenovarCertRequest(BaseModel):
+    days_valid: int  # Nueva duración en días
 
 
 # Esquema para crear usuario efímero
@@ -56,12 +61,15 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
         raise HTTPException(status_code=400, detail="El correo ya se encuentra enlazado a otra identidad.")
     
     # Solo Nivel 1 (Admin) y Nivel 2 (Coordinator) obtienen certificados
+    cert_expires_at = None
     if data.rol in ("Admin", "Coordinator"):
+        days_valid = max(1, data.cert_days_valid or 365)
         ca_priv, ca_cert, _, _ = build_root_ca()
         _, _, pub_obj, pub_pem = generate_key_pair()
-        user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert, days_valid=365)
+        user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert, days_valid=days_valid)
         pub_pem_str = pub_pem.decode('utf-8')
         cert_pem_str = user_cert_pem.decode('utf-8')
+        cert_expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=days_valid)
     else:
         pub_pem_str = None
         cert_pem_str = None
@@ -75,7 +83,8 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
         hashed_password,
         data.rol,
         pub_pem_str,
-        cert_pem_str
+        cert_pem_str,
+        cert_expires_at=cert_expires_at,
     )
     
     log_audit_event(
@@ -231,6 +240,77 @@ def endpoint_create_ephemeral_user(request: EphemeralUserRequest, db: Session = 
         raise HTTPException(status_code=500, detail=f"Error al crear usuario efímero: {str(e)}")
 
 # ── Rutas dinámicas (con path parameter) ─────────────────────────────────────
+
+@router.put("/{identity_id}/renovar-cert")
+def endpoint_renovar_cert(identity_id: int, data: RenovarCertRequest, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
+    """ RENOVAR CERTIFICADO: Reemite el certificado de una identidad con nueva duración. """
+    if data.days_valid < 1 or data.days_valid > 3650:
+        raise HTTPException(status_code=400, detail="La duración debe estar entre 1 y 3650 días.")
+
+    target = db.query(Identity).filter(Identity.id == identity_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Identidad no encontrada.")
+
+    if target.rol not in ("Admin", "Coordinator"):
+        raise HTTPException(status_code=400, detail="Solo Admin y Coordinator tienen certificados renovables.")
+
+    check_hierarchy(current_user, target.rol)
+
+    ca_priv, ca_cert, _, _ = build_root_ca()
+    _, _, pub_obj, pub_pem = generate_key_pair()
+    new_cert_pem = generate_user_certificate(pub_obj, target.nombre, ca_priv, ca_cert, days_valid=data.days_valid)
+    new_expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=data.days_valid)
+
+    target.public_key_pem = pub_pem.decode('utf-8')
+    target.certificate_pem = new_cert_pem.decode('utf-8')
+    target.cert_expires_at = new_expires_at
+    db.commit()
+    db.refresh(target)
+
+    log_audit_event(
+        db=db,
+        identity_id=identity_id,
+        actor_id=current_user.id,
+        accion="CERT_RENOVADO",
+        detalles=f"Certificado renovado por {data.days_valid} días. Nueva expiración: {new_expires_at.strftime('%Y-%m-%d')}"
+    )
+
+    return {
+        "success": True,
+        "message": f"Certificado renovado exitosamente. Nuevo vencimiento: {new_expires_at.strftime('%d/%m/%Y')}",
+        "cert_expires_at": new_expires_at.isoformat()
+    }
+
+@router.put("/{identity_id}/revalidar-cert")
+def endpoint_revalidar_cert(identity_id: int, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
+    """ REVALIDAR CERTIFICADO: Solo Admin puede reactivar un certificado revocado. """
+    if current_user.rol != "Admin":
+        raise HTTPException(status_code=403, detail="Solo los administradores pueden revalidar certificados.")
+
+    target = db.query(Identity).filter(Identity.id == identity_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Identidad no encontrada.")
+
+    if target.rol not in ("Admin", "Coordinator"):
+        raise HTTPException(status_code=400, detail="Solo Admin y Coordinator tienen certificados revalidables.")
+
+    if target.estado != "REVOCADO":
+        raise HTTPException(status_code=400, detail="El certificado no está revocado.")
+
+    target.estado = "ACTIVO"
+    target.cert_revalidado = True
+    db.commit()
+    db.refresh(target)
+
+    log_audit_event(
+        db=db,
+        identity_id=identity_id,
+        actor_id=current_user.id,
+        accion="CERT_REVALIDADO",
+        detalles=f"Certificado de {target.nombre} revalidado por administrador."
+    )
+
+    return {"message": f"El certificado de {target.nombre} ha sido revalidado.", "estado": "ACTIVO"}
 
 @router.put("/{identity_id}/revocar")
 def endpoint_revocacion(identity_id: int, data: IdentityStatusUpdate, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):

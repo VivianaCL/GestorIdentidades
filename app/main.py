@@ -3,9 +3,22 @@ from fastapi.responses import HTMLResponse
 from app.routers import identity
 from app.db.database import engine, Base, SessionLocal
 from app.models.identity import Identity, AuditLog
+from sqlalchemy import text
 
 # Preparación de la Base de Datos SQLite y creación de tablas
 Base.metadata.create_all(bind=engine)
+
+# Migración: añadir columnas nuevas si no existen
+with engine.connect() as _conn:
+    for _col_sql in [
+        "ALTER TABLE identities ADD COLUMN cert_expires_at DATETIME",
+        "ALTER TABLE identities ADD COLUMN cert_revalidado BOOLEAN DEFAULT 0",
+    ]:
+        try:
+            _conn.execute(text(_col_sql))
+            _conn.commit()
+        except Exception:
+            pass  # La columna ya existe
 
 app = FastAPI(
     title="Gestor de Identidades API",

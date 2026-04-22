@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.sql import func
 from app.db.database import Base
 
@@ -14,6 +14,9 @@ class Identity(Base):
     certificate_pem = Column(String)  # Certificado X.509 en formato PEM
     estado = Column(String, default="ACTIVO", index=True)  # ACTIVO, REVOCADO, BAJA
     
+    cert_expires_at = Column(DateTime(timezone=True), nullable=True)
+    cert_revalidado = Column(Boolean, default=False, nullable=True)
+
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
     fecha_modificacion = Column(DateTime(timezone=True), onupdate=func.now())
 

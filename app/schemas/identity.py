@@ -1,11 +1,13 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import datetime
 
 class IdentityCreate(BaseModel):
     nombre: str
     email: EmailStr
-    password: str  # Added strict requirement for initial password
-    rol: str       # Opciones: Admin, Coordinator, Operative, External
+    password: str
+    rol: str
+    cert_days_valid: Optional[int] = 365  # Duración del certificado en días
 
 class IdentityStatusUpdate(BaseModel):
     estado: str    # REVOCADO, BAJA, etc.
@@ -16,7 +18,8 @@ class IdentityResponse(BaseModel):
     email: EmailStr
     rol: str
     estado: str
-    
+    cert_expires_at: Optional[datetime] = None
+
     class Config:
         orm_mode = True
 
