@@ -20,10 +20,10 @@ def get_db():
     finally:
         db.close()
 
-def create_identity(db, nombre: str, email: str, password_hash: str, rol: str, public_key_pem: str, certificate_pem: str):
+def create_identity(db, nombre: str, email: str, password_hash: str, rol: str, public_key_pem: str, certificate_pem: str, cert_expires_at=None):
     """ I. ALTA: Registra una nueva identidad en la BD junto a su material criptográfico. """
     from app.models.identity import Identity
-    
+
     new_identity = Identity(
         nombre=nombre,
         email=email,
@@ -31,6 +31,7 @@ def create_identity(db, nombre: str, email: str, password_hash: str, rol: str, p
         rol=rol,
         public_key_pem=public_key_pem,
         certificate_pem=certificate_pem,
+        cert_expires_at=cert_expires_at,
         estado="ACTIVO"
     )
     db.add(new_identity)

@@ -1,11 +1,24 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from app.routers import identity
-from app.db.database import engine, Base
-from app.models.identity import Identity, AuditLog 
+from app.db.database import engine, Base, SessionLocal
+from app.models.identity import Identity, AuditLog
+from sqlalchemy import text
 
 # Preparación de la Base de Datos SQLite y creación de tablas
 Base.metadata.create_all(bind=engine)
+
+# Migración: añadir columnas nuevas si no existen
+with engine.connect() as _conn:
+    for _col_sql in [
+        "ALTER TABLE identities ADD COLUMN cert_expires_at DATETIME",
+        "ALTER TABLE identities ADD COLUMN cert_revalidado BOOLEAN DEFAULT 0",
+    ]:
+        try:
+            _conn.execute(text(_col_sql))
+            _conn.commit()
+        except Exception:
+            pass  # La columna ya existe
 
 app = FastAPI(
     title="Gestor de Identidades API",
@@ -20,6 +33,19 @@ def serve_frontend():
         return f.read()
 
 from app.routers import identity, auth
+
+@app.on_event("startup")
+def cleanup_lower_level_certs():
+    """Elimina los certificados de usuarios Nivel 3 (Operative) y Nivel 4 (External)."""
+    db = SessionLocal()
+    try:
+        db.query(Identity).filter(Identity.rol.in_(["Operative", "External"])).update(
+            {"certificate_pem": None, "public_key_pem": None},
+            synchronize_session=False
+        )
+        db.commit()
+    finally:
+        db.close()
 
 # Acople de los Endpoints
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])

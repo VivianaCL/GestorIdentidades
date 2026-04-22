@@ -520,6 +520,11 @@
       color: var(--success);
     }
 
+    .badge-revalidated {
+      background: rgba(79, 120, 184, .18);
+      color: #7ab4f0;
+    }
+
     .badge-expired {
       background: rgba(217, 79, 79, .15);
       color: var(--danger);
@@ -580,6 +585,12 @@
       background: transparent;
       color: var(--muted);
       border: 1px solid var(--border);
+    }
+
+    .btn-baja {
+      background: rgba(139, 20, 20, .28);
+      color: #c0392b;
+      border: 1px solid rgba(139, 20, 20, .5);
     }
 
     .action-group {
@@ -1020,7 +1031,7 @@
                     <th>Emitido</th>
                     <th>Válido hasta</th>
                     <th>Estado</th>
-                    <th>Algoritmo</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody id="certs-tbody"></tbody>
@@ -1189,7 +1200,7 @@
         </div>
         <div class="form-group">
           <label>Nivel de acceso</label>
-          <select id="m-level">
+          <select id="m-level" onchange="toggleCertDuration()">
             <option value="External">Nivel 4 – Personal externo</option>
             <option value="Operative" selected>Nivel 3 – Personal operativo</option>
             <option value="Coordinator">Nivel 2 – Coordinador</option>
@@ -1198,11 +1209,48 @@
         </div>
       </div>
 
+      <div class="form-group" id="cert-duration-group" style="display:none">
+        <label>Duración del certificado</label>
+        <select id="m-cert-days">
+          <option value="30">30 días</option>
+          <option value="90">90 días</option>
+          <option value="180">6 meses (180 días)</option>
+          <option value="365" selected>1 año (365 días)</option>
+          <option value="730">2 años</option>
+          <option value="1825">5 años</option>
+        </select>
+      </div>
+
       <div id="modal-error" class="login-error" style="margin-top:8px;"></div>
 
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
         <button class="btn-save" onclick="saveNewUser()">Dar de alta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Extender certificado ─────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-extend-cert">
+    <div class="modal">
+      <h2>Extender certificado</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+        Se reemitirá un nuevo certificado con la duración seleccionada a partir de hoy.
+      </p>
+      <div class="form-group">
+        <label>Nueva duración</label>
+        <select id="extend-cert-days">
+          <option value="30">30 días</option>
+          <option value="90">90 días</option>
+          <option value="180">6 meses (180 días)</option>
+          <option value="365" selected>1 año (365 días)</option>
+          <option value="730">2 años</option>
+          <option value="1825">5 años</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeExtendModal()">Cancelar</button>
+        <button class="btn-save" onclick="confirmExtendCert()">Extender</button>
       </div>
     </div>
   </div>
@@ -1227,6 +1275,7 @@
       user: null,
       users: [],
       filteredUsers: [],
+      certs: [],
     };
 
     const API = "";
@@ -1446,10 +1495,12 @@
         // Se pueden realizar acciones si el nivel del usuario actual es estrictamente inferior (mejor jerarquía) al objetivo
         if (currentUserLevel < targetUserLevel && u.email !== State.user.email) {
           if (u.estado === "ACTIVO") {
+            // Revocar solo aplica a usuarios con certificado (Nivel 1 y 2)
+            const hasCert = targetUserLevel <= 2;
             actions = `
           <div class="action-group">
-            <button class="btn-sm btn-danger" onclick="revokeUser(${u.id})">Revocar</button>
-            <button class="btn-sm btn-ghost"  onclick="deleteUser(${u.id})">Baja</button>
+            ${hasCert ? `<button class="btn-sm btn-danger" onclick="revokeUser(${u.id})">Revocar</button>` : ''}
+            <button class="btn-sm btn-baja"  onclick="deleteUser(${u.id})">Baja</button>
           </div>`;
           }
         }
@@ -1481,6 +1532,12 @@
       else showToast(data.detail || "Error", "error");
     }
 
+    function toggleCertDuration() {
+      const rol = document.getElementById("m-level").value;
+      const group = document.getElementById("cert-duration-group");
+      group.style.display = (rol === "Admin" || rol === "Coordinator") ? "block" : "none";
+    }
+
     function openNewUserModal() {
       // Limpiar campos
       ["m-fullname", "m-username", "m-password", "m-email"].forEach(id => {
@@ -1488,11 +1545,12 @@
         if (el) el.value = "";
       });
       document.getElementById("modal-error").classList.remove("visible");
+      document.getElementById("m-cert-days").value = "365";
 
       // Filtrar niveles disponibles según la jerarquía del usuario actual
       const selectLevel = document.getElementById("m-level");
       const currentLevel = ROLE_LEVELS[State.user.rol];
-      
+
       // Opciones originales mapeadas
       const options = [
         { val: "Admin", text: "Nivel 1 – Administrador" },
@@ -1503,10 +1561,13 @@
 
       // Filtrar: Solo mostrar niveles con número mayor al nivel actual (menor poder)
       const allowed = options.filter(opt => ROLE_LEVELS[opt.val] > currentLevel);
-      
-      selectLevel.innerHTML = allowed.map(opt => 
+
+      selectLevel.innerHTML = allowed.map(opt =>
         `<option value="${opt.val}">${opt.text}</option>`
       ).join("");
+
+      // Mostrar/ocultar duración según el nivel por defecto seleccionado
+      toggleCertDuration();
 
       if (allowed.length > 0) {
         document.getElementById("modal-user").classList.add("open");
@@ -1523,11 +1584,15 @@
       const errEl = document.getElementById("modal-error");
       errEl.classList.remove("visible");
 
+      const rol = document.getElementById("m-level").value;
       const payload = {
         nombre: document.getElementById("m-fullname").value.trim(),
         password: document.getElementById("m-password").value,
         email: document.getElementById("m-email").value.trim(),
-        rol: document.getElementById("m-level").value,
+        rol,
+        cert_days_valid: (rol === "Admin" || rol === "Coordinator")
+          ? parseInt(document.getElementById("m-cert-days").value)
+          : 365,
       };
 
       if (!payload.nombre || !payload.password || !payload.email || !payload.rol) {
@@ -1554,15 +1619,64 @@
       const { ok, data } = await api("/api/v1/identities/certificates/all");
       const tbody = document.getElementById("certs-tbody");
 
-      if (!ok || !data.length) {
+      if (!ok) {
         tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="emoji">🏅</div><p>No hay certificados</p></div></td></tr>`;
         return;
       }
 
-      tbody.innerHTML = data.map(c => {
-        const badge = c.estado === "ACTIVO"
-          ? `<span class="badge badge-valid">Válido</span>`
-          : `<span class="badge badge-revoked">${c.estado}</span>`;
+      // Solo mostrar usuarios que tienen certificado (Nivel 1 y 2)
+      State.certs = data.filter(c => c.certificate_pem);
+
+      if (!State.certs.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="emoji">🏅</div><p>No hay certificados</p></div></td></tr>`;
+        return;
+      }
+
+      const now = new Date();
+      const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+      const currentUserLevel = ROLE_LEVELS[State.user.rol];
+
+      tbody.innerHTML = State.certs.map(c => {
+        // Calcular estado de expiración
+        let expiresAt = null;
+        if (c.cert_expires_at) {
+          const ts = c.cert_expires_at;
+          expiresAt = new Date(/[Z+]/.test(ts) ? ts : ts.replace(" ", "T") + "Z");
+        }
+        const msLeft = expiresAt ? (expiresAt - now) : null;
+        const daysLeft = msLeft !== null ? Math.ceil(msLeft / (1000 * 60 * 60 * 24)) : null;
+        const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
+        const isExpired = daysLeft !== null && daysLeft <= 0;
+
+        // Badge de estado
+        let badge;
+        if (c.estado === "ACTIVO") {
+          badge = c.cert_revalidado
+            ? `<span class="badge badge-revalidated">Revalidado</span>`
+            : `<span class="badge badge-valid">Válido</span>`;
+        } else {
+          badge = `<span class="badge badge-revoked">${c.estado}</span>`;
+        }
+
+        if (isExpiringSoon) {
+          badge += ` <span class="badge badge-inactive" title="Expira pronto">⚠ ${daysLeft}d restantes</span>`;
+        } else if (isExpired) {
+          badge += ` <span class="badge badge-expired">Expirado</span>`;
+        }
+
+        const expiresDisplay = expiresAt ? formatDate(c.cert_expires_at) : '—';
+
+        // Botones de acción según jerarquía y estado
+        const targetLevel = ROLE_LEVELS[c.rol];
+        const canExtend = currentUserLevel < targetLevel && c.estado === "ACTIVO";
+        const canRevalidate = currentUserLevel === 1 && c.estado === "REVOCADO"; // Solo Admin
+
+        const extendBtn = canExtend
+          ? `<button class="btn-sm btn-accent" onclick="openExtendModal(${c.id})">Extender</button>`
+          : '';
+        const revalidateBtn = canRevalidate
+          ? `<button class="btn-sm btn-success" onclick="revalidateCert(${c.id})">Revalidar</button>`
+          : '';
 
         return `
       <tr>
@@ -1570,11 +1684,32 @@
         <td>${c.nombre}</td>
         <td>${c.email}</td>
         <td style="font-size:12px;color:var(--muted)">${formatDate(c.fecha_creacion)}</td>
-        <td style="font-size:12px;color:var(--muted)">—</td>
+        <td style="font-size:12px;color:${isExpiringSoon ? 'var(--warning)' : isExpired ? 'var(--danger)' : 'var(--muted)'}">${expiresDisplay}</td>
         <td>${badge}</td>
-        <td style="font-size:11px;color:var(--muted)">RSA X.509</td>
+        <td>
+          <div class="action-group">
+            <button class="btn-sm btn-ghost" onclick="downloadCert(${c.id})">Descargar</button>
+            ${extendBtn}
+            ${revalidateBtn}
+          </div>
+        </td>
       </tr>`;
       }).join("");
+    }
+
+    function downloadCert(id) {
+      const cert = State.certs.find(c => c.id === id);
+      if (!cert || !cert.certificate_pem) return;
+      const filename = `cert_${cert.email.replace(/[@.]/g, '_')}.pem`;
+      const blob = new Blob([cert.certificate_pem], { type: 'application/x-pem-file' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     async function loadAudit() {
@@ -1609,10 +1744,13 @@
 
     function formatDate(iso) {
       if (!iso) return "—";
-      const d = new Date(iso);
+      // SQLite returns naive datetimes with no timezone suffix; treat them as UTC
+      const normalized = /[Z+]/.test(iso) ? iso : iso.replace(" ", "T") + "Z";
+      const d = new Date(normalized);
       return d.toLocaleString("es-MX", {
         year: "numeric", month: "short", day: "2-digit",
         hour: "2-digit", minute: "2-digit",
+        timeZone: "America/Mexico_City",
       });
     }
 
@@ -1660,8 +1798,9 @@
       document.getElementById("ephemeral-status").textContent = "VIGENTE ✓";
       document.getElementById("ephemeral-user-email").textContent = data.email;
       document.getElementById("ephemeral-user-password").textContent = data.password;
-      document.getElementById("ephemeral-valid-from").textContent = new Date(data.valid_from).toLocaleString("es-MX");
-      document.getElementById("ephemeral-valid-until").textContent = new Date(data.valid_until).toLocaleString("es-MX");
+      const normalizeTs = s => /[Z+]/.test(s) ? s : s.replace(" ", "T") + "Z";
+      document.getElementById("ephemeral-valid-from").textContent = new Date(normalizeTs(data.valid_from)).toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
+      document.getElementById("ephemeral-valid-until").textContent = new Date(normalizeTs(data.valid_until)).toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
       document.getElementById("ephemeral-cert").value = data.certificate_pem;
 
       // Guardar para usar en login test
@@ -1720,6 +1859,40 @@
       document.getElementById("login-user").value = email;
       document.getElementById("login-pass").value = password;
       showToast("✓ Campos de login completados. Haz clic en 'Entrar'", "success");
+    }
+
+    let _extendCertId = null;
+
+    function openExtendModal(id) {
+      _extendCertId = id;
+      document.getElementById("extend-cert-days").value = "365";
+      document.getElementById("modal-extend-cert").classList.add("open");
+    }
+
+    function closeExtendModal() {
+      document.getElementById("modal-extend-cert").classList.remove("open");
+    }
+
+    async function confirmExtendCert() {
+      const days = parseInt(document.getElementById("extend-cert-days").value);
+      const { ok, data } = await api(`/api/v1/identities/${_extendCertId}/renovar-cert`, "PUT", { days_valid: days });
+      closeExtendModal();
+      if (ok) {
+        showToast(data.message, "success");
+        loadCerts();
+      } else {
+        showToast(data.detail || "Error al extender certificado", "error");
+      }
+    }
+
+    async function revalidateCert(id) {
+      const { ok, data } = await api(`/api/v1/identities/${id}/revalidar-cert`, "PUT");
+      if (ok) {
+        showToast(data.message, "success");
+        loadCerts();
+      } else {
+        showToast(data.detail || "Error al revalidar certificado", "error");
+      }
     }
 
     window.addEventListener("DOMContentLoaded", () => {
