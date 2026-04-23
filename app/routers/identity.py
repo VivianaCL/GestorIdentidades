@@ -69,7 +69,7 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
     # Solo Nivel 1 (Admin) y Nivel 2 (Coordinator) obtienen certificados
     cert_expires_at = None
     if data.rol in ("Admin", "Coordinator"):
-        days_valid = max(1, data.cert_days_valid or 365)
+        days_valid = data.cert_days_valid if data.cert_days_valid and data.cert_days_valid > 0 else 365
         ca_priv, ca_cert, _, _ = build_root_ca()
         _, _, pub_obj, pub_pem = generate_key_pair()
         user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert, days_valid=days_valid)
