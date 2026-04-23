@@ -7,7 +7,7 @@ class IdentityCreate(BaseModel):
     email: EmailStr
     password: str
     rol: str
-    cert_days_valid: Optional[int] = 365  # Duración del certificado en días
+    cert_days_valid: Optional[float] = 365  # Duración del certificado en días (puede ser fraccionario para horas/minutos)
 
 class IdentityStatusUpdate(BaseModel):
     estado: str    # REVOCADO, BAJA, etc.

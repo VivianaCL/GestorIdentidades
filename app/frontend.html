@@ -913,9 +913,6 @@
           <div class="nav-item" onclick="showPage('certs')" id="nav-certs">
             <span class="icon">🏅</span> Certificados
           </div>
-          <div class="nav-item" onclick="showPage('ephemeral')" id="nav-ephemeral">
-            <span class="icon">🧪</span> Efímeros
-          </div>
         </div>
 
         <div class="nav-section" id="nav-admin-section" style="display:none">
@@ -1040,106 +1037,6 @@
           </div>
         </div>
 
-        <!-- ── Certificados Efímeros (Provisional) ─────────────────────────────────────────────── -->
-        <div class="page" id="page-ephemeral">
-          <div class="page-header">
-            <div>
-              <h1>Certificados Efímeros 🧪</h1>
-              <p>Herramienta provisional para crear y probar certificados temporales</p>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <h3>Crear Usuario Efímero</h3>
-            </div>
-            <div style="padding: 20px;">
-              <div class="form-row" style="max-width: 600px;">
-                <div class="form-group">
-                  <label>Nombre completo</label>
-                  <input type="text" id="ephemeral-name" placeholder="Ej. Juan Pérez" />
-                </div>
-                <div class="form-group">
-                  <label>Correo electrónico</label>
-                  <input type="email" id="ephemeral-email" placeholder="usuario@ejemplo.com" />
-                </div>
-              </div>
-              <div class="form-row" style="max-width: 600px;">
-                <div class="form-group">
-                  <label>Contraseña</label>
-                  <input type="password" id="ephemeral-password" placeholder="••••••••" />
-                </div>
-                <div class="form-group">
-                  <label>Duración del acceso</label>
-                  <select id="ephemeral-duration" style="width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 14px; color: var(--text); font-family: var(--font-body); font-size: 14px;">
-                    <option value="2">2 minutos</option>
-                    <option value="60">1 hora</option>
-                    <option value="1440">1 día</option>
-                    <option value="10080">1 semana</option>
-                  </select>
-                </div>
-              </div>
-              <button class="btn-primary" id="btn-create-ephemeral" onclick="createEphemeralUser()" style="width: 200px; margin-top: 10px;">
-                Generar Usuario Efímero
-              </button>
-            </div>
-          </div>
-
-          <div id="ephemeral-result" style="display: none; margin-top: 20px;">
-            <div class="card">
-              <div class="card-header">
-                <h3>Usuario Efímero Creado ✓</h3>
-              </div>
-              <div style="padding: 20px;">
-                <div style="background: rgba(79, 184, 122, .1); border: 1px solid rgba(79, 184, 122, .3); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 13px; color: #7ab4f0;">
-                  <strong>Estado:</strong> <span id="ephemeral-status">VIGENTE</span>
-                </div>
-                
-                <div style="background: rgba(232, 160, 69, .08); border: 1px solid rgba(232, 160, 69, .2); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 12px;">
-                  <strong style="color: var(--accent);">⚠ Importante:</strong> Guarda estas credenciales. La contraseña solo se mostrará una vez.
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
-                  <div>
-                    <label style="display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500;">Correo:</label>
-                    <div id="ephemeral-user-email" style="font-size: 13px; color: var(--text); font-family: monospace; padding: 8px; background: var(--bg); border-radius: 6px;">—</div>
-                  </div>
-                  <div>
-                    <label style="display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500;">Contraseña:</label>
-                    <div style="display: flex; gap: 8px;">
-                      <div id="ephemeral-user-password" style="font-size: 13px; color: var(--text); font-family: monospace; padding: 8px; background: var(--bg); border-radius: 6px; flex: 1;">—</div>
-                      <button class="btn-sm btn-accent" onclick="copyToClipboard('ephemeral-user-password')" style="padding: 5px 8px;">📋</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
-                  <div>
-                    <label style="display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500;">Válido desde:</label>
-                    <div id="ephemeral-valid-from" style="font-size: 13px; color: var(--text); font-family: monospace;">—</div>
-                  </div>
-                  <div>
-                    <label style="display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500;">Válido hasta:</label>
-                    <div id="ephemeral-valid-until" style="font-size: 13px; color: var(--text); font-family: monospace;">—</div>
-                  </div>
-                </div>
-
-                <div style="margin-bottom: 14px;">
-                  <label style="display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500;">Certificado (PEM):</label>
-                  <textarea id="ephemeral-cert" style="width: 100%; height: 100px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--muted); font-family: monospace; font-size: 10px; resize: none;" readonly></textarea>
-                </div>
-
-                <div style="display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;">
-                  <button class="btn-sm btn-accent" onclick="copyToClipboard('ephemeral-user-email')">📋 Copiar Email</button>
-                  <button class="btn-sm btn-accent" onclick="copyToClipboard('ephemeral-user-password')">📋 Copiar Contraseña</button>
-                  <button class="btn-sm btn-accent" onclick="copyToClipboard('ephemeral-cert')">📋 Copiar Certificado</button>
-                  <button class="btn-sm btn-success" onclick="startEphemeralLoginTest()">🧪 Probar Login</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- ── Auditoría ──────────────────────────────────────────────── -->
         <div class="page" id="page-audit">
           <div class="page-header">
@@ -1211,14 +1108,24 @@
 
       <div class="form-group" id="cert-duration-group" style="display:none">
         <label>Duración del certificado</label>
-        <select id="m-cert-days">
-          <option value="30">30 días</option>
-          <option value="90">90 días</option>
-          <option value="180">6 meses (180 días)</option>
-          <option value="365" selected>1 año (365 días)</option>
-          <option value="730">2 años</option>
-          <option value="1825">5 años</option>
-        </select>
+        <div style="display:flex; gap:10px;">
+          <input
+            type="number"
+            id="m-cert-amount"
+            min="1"
+            value="1"
+            placeholder="Cantidad"
+            oninput="validateCertAmount(this)"
+            style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:11px 14px; color:var(--text); font-family:var(--font-body); font-size:14px; outline:none;"
+          />
+          <select id="m-cert-unit" style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:11px 14px; color:var(--text); font-family:var(--font-body); font-size:14px; outline:none; appearance:none;">
+            <option value="minutes">Minutos</option>
+            <option value="hours">Horas</option>
+            <option value="days" selected>Días</option>
+            <option value="months">Meses</option>
+            <option value="years">Años</option>
+          </select>
+        </div>
       </div>
 
       <div id="modal-error" class="login-error" style="margin-top:8px;"></div>
@@ -1553,7 +1460,8 @@
         if (el) el.value = "";
       });
       document.getElementById("modal-error").classList.remove("visible");
-      document.getElementById("m-cert-days").value = "365";
+      document.getElementById("m-cert-amount").value = "1";
+      document.getElementById("m-cert-unit").value = "days";
 
       // Filtrar niveles disponibles según la jerarquía del usuario actual
       const selectLevel = document.getElementById("m-level");
@@ -1599,7 +1507,7 @@
         email: document.getElementById("m-email").value.trim(),
         rol,
         cert_days_valid: (rol === "Admin" || rol === "Coordinator")
-          ? parseInt(document.getElementById("m-cert-days").value)
+          ? certAmountToDays()
           : 365,
       };
 
@@ -1762,111 +1670,25 @@
       });
     }
 
-    function copyToClipboard(elementId) {
-      const el = document.getElementById(elementId);
-      el.select();
-      document.execCommand("copy");
-      showToast("✓ Copiado al portapapeles", "success");
+    function validateCertAmount(input) {
+      // Solo permitir dígitos enteros positivos
+      input.value = input.value.replace(/[^0-9]/g, "");
+      if (input.value === "" || parseInt(input.value) < 1) {
+        input.value = "1";
+      }
     }
 
-    async function createEphemeralUser() {
-      const nameEl = document.getElementById("ephemeral-name");
-      const emailEl = document.getElementById("ephemeral-email");
-      const durationEl = document.getElementById("ephemeral-duration");
-      
-      const name = nameEl.value.trim();
-      const email = emailEl.value.trim();
-      const duration = parseInt(durationEl.value);
-      
-      if (!name || !email) {
-        showToast("Por favor ingresa nombre y correo electrónico", "error");
-        return;
+    function certAmountToDays() {
+      const amount = parseInt(document.getElementById("m-cert-amount").value) || 1;
+      const unit = document.getElementById("m-cert-unit").value;
+      switch (unit) {
+        case "minutes": return amount / 1440;
+        case "hours":   return amount / 24;
+        case "days":    return amount;
+        case "months":  return amount * 30;
+        case "years":   return amount * 365;
+        default:        return amount;
       }
-      
-      const btn = document.getElementById("btn-create-ephemeral");
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Generando…';
-
-      const { ok, data } = await api("/api/v1/identities/ephemeral/user", "POST", { 
-        nombre: name,
-        email: email,
-        duration_minutes: duration 
-      });
-
-      btn.disabled = false;
-      btn.innerHTML = "Generar Usuario Efímero";
-
-      if (!ok) {
-        showToast(data.detail || "Error al crear usuario efímero", "error");
-        return;
-      }
-
-      // Mostrar resultado
-      document.getElementById("ephemeral-result").style.display = "block";
-      document.getElementById("ephemeral-status").textContent = "VIGENTE ✓";
-      document.getElementById("ephemeral-user-email").textContent = data.email;
-      document.getElementById("ephemeral-user-password").textContent = data.password;
-      const normalizeTs = s => /[Z+]/.test(s) ? s : s.replace(" ", "T") + "Z";
-      document.getElementById("ephemeral-valid-from").textContent = new Date(normalizeTs(data.valid_from)).toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
-      document.getElementById("ephemeral-valid-until").textContent = new Date(normalizeTs(data.valid_until)).toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
-      document.getElementById("ephemeral-cert").value = data.certificate_pem;
-
-      // Guardar para usar en login test
-      window.currentEphemeralUser = data;
-
-      showToast("✓ Usuario efímero creado exitosamente", "success");
-
-      // Auto-actualizar estado cada segundo hasta que expire
-      updateEphemeralStatus();
-    }
-
-    function updateEphemeralStatus() {
-      if (!window.currentEphemeralUser) return;
-
-      const expiresAt = new Date(window.currentEphemeralUser.valid_until);
-      const now = new Date();
-      const secondsLeft = Math.floor((expiresAt - now) / 1000);
-
-      if (secondsLeft <= 0) {
-        document.getElementById("ephemeral-status").textContent = "EXPIRADO ❌";
-        document.getElementById("ephemeral-status").style.color = "var(--danger)";
-        return;
-      }
-
-      const minutes = Math.floor(secondsLeft / 60);
-      const seconds = secondsLeft % 60;
-      document.getElementById("ephemeral-status").textContent = `VIGENTE ✓ (Expira en ${minutes}m ${seconds}s)`;
-      document.getElementById("ephemeral-status").style.color = secondsLeft < 60 ? "var(--warning)" : "var(--success)";
-
-      setTimeout(updateEphemeralStatus, 1000);
-    }
-
-    function startEphemeralLoginTest() {
-      if (!window.currentEphemeralUser) {
-        showToast("No hay usuario efímero disponible", "error");
-        return;
-      }
-
-      const expiresAt = new Date(window.currentEphemeralUser.valid_until);
-      const now = new Date();
-
-      if (now > expiresAt) {
-        showToast("❌ El usuario ha EXPIRADO. No se puede hacer login.", "error");
-        return;
-      }
-
-      const email = window.currentEphemeralUser.email;
-      const password = window.currentEphemeralUser.password;
-      
-      showToast(
-        `✓ Usuario vigente. Puedes ingresar como:\nEmail: ${email}\nContraseña: ${password}`,
-        "success"
-      );
-      
-      // Llenar campos de login
-      document.getElementById("login-user").value = email;
-      document.getElementById("login-pass").value = password;
-      showToast("✓ Campos de login completados. Haz clic en 'Entrar'", "success");
     }
 
     let _extendCertId = null;
