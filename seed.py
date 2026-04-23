@@ -5,7 +5,7 @@ from app.core.crypto import build_root_ca, generate_key_pair, generate_user_cert
 def seed_admin():
     # Asegurarnos de que las tablas existan
     Base.metadata.create_all(bind=engine)
-    
+
     db = SessionLocal()
     try:
         # Verificar si ya existe el root admin
@@ -17,30 +17,30 @@ def seed_admin():
         print("Generando material criptográfico para Administrador maestro...")
         ca_priv, ca_cert, _, _ = build_root_ca()
         _, _, pub_obj, pub_pem = generate_key_pair()
-        
+
         user_cert_pem = generate_user_certificate(pub_obj, "Administrador Maestro", ca_priv, ca_cert)
-        
+
         hashed_password = get_password_hash("monarca123!")
-        
+
         print("Registrando en la Base de Datos...")
         new_admin = create_identity(
-            db, 
-            nombre="Administrador Maestro", 
-            email="admin@casamonarca.com", 
+            db,
+            nombre="Administrador Maestro",
+            email="admin@casamonarca.com",
             password_hash=hashed_password,
-            rol="Admin", 
-            public_key_pem=pub_pem.decode('utf-8'), 
+            rol="Admin",
+            public_key_pem=pub_pem.decode('utf-8'),
             certificate_pem=user_cert_pem.decode('utf-8')
         )
-        
+
         log_audit_event(
-            db, 
-            actor_id=new_admin.id, 
-            accion="BOOTSTRAP", 
-            identity_id=new_admin.id, 
+            db,
+            actor_id=new_admin.id,
+            accion="BOOTSTRAP",
+            identity_id=new_admin.id,
             detalles="Creación automática de cuenta semilla para Admin."
         )
-        
+
         print("\n" + "="*50)
         print("[OK] Administrador Maestro Creado Exitosamente")
         print("="*50)

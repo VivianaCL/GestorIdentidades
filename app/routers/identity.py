@@ -52,9 +52,15 @@ def check_hierarchy(actor: Identity, target_role: str):
 
 @router.post("/alta", response_model=IdentityResponse)
 def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
-    """ 
-    I. ALTA: Valida nivel jerárquico, registra la identidad y le asocia sus certificados 
     """
+    I. ALTA: Solo el Admin (nivel 1) puede crear colaboradores. Valida nivel jerárquico,
+    registra la identidad y le asocia sus certificados.
+    """
+    if current_user.rol != "Admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: Solo los administradores de nivel 1 pueden crear nuevos colaboradores."
+        )
     check_hierarchy(current_user, data.rol)
 
     if db.query(Identity).filter(Identity.email == data.email).first():
@@ -336,10 +342,13 @@ def endpoint_revocacion(identity_id: int, data: IdentityStatusUpdate, db: Sessio
 @router.delete("/{identity_id}/baja")
 def endpoint_baja(identity_id: int, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
     """ III. BAJA (Eliminación física total de la base de datos) """
+    if current_user.rol != "Admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado: Solo los administradores de nivel 1 pueden dar de baja a un colaborador.")
+
     target = db.query(Identity).filter(Identity.id == identity_id).first()
     if not target:
         raise HTTPException(status_code=404, detail="La identidad objetivo a borrar ya no existe.")
-        
+
     check_hierarchy(current_user, target.rol)
     
     nombre_target = target.nombre
