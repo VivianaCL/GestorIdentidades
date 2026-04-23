@@ -1002,7 +1002,7 @@
                     <th>Rol</th>
                     <th>Estado</th>
                     <th>Creado</th>
-                    <th>Acciones</th>
+                    <th id="th-acciones">Acciones</th>
                   </tr>
                 </thead>
                 <tbody id="users-tbody"></tbody>
@@ -1374,13 +1374,14 @@
       document.getElementById("sidebar-level").textContent = `Rol: ${u.rol}`;
       document.getElementById("sidebar-avatar").textContent = u.email.charAt(0).toUpperCase();
 
-      // Mostrar sección de administración si el nivel es menor a 4 (External)
-      if (ROLE_LEVELS[u.rol] < 4) {
+      // Solo el Admin (nivel 1) puede ver la sección de administración y crear colaboradores
+      if (ROLE_LEVELS[u.rol] === 1) {
         document.getElementById("nav-admin-section").style.display = "block";
         if (document.getElementById("btn-new-user")) {
           document.getElementById("btn-new-user").style.display = "block";
         }
       } else {
+        document.getElementById("nav-admin-section").style.display = "none";
         if (document.getElementById("btn-new-user")) {
           document.getElementById("btn-new-user").style.display = "none";
         }
@@ -1474,8 +1475,13 @@
 
     function renderUsersTable(users) {
       const tbody = document.getElementById("users-tbody");
+      const isAdmin = ROLE_LEVELS[State.user.rol] === 1;
+
+      // Mostrar u ocultar columna Acciones según nivel
+      document.getElementById("th-acciones").style.display = isAdmin ? "" : "none";
+
       if (!users.length) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="emoji">👤</div><p>No se encontraron usuarios</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${isAdmin ? 7 : 6}"><div class="empty-state"><div class="emoji">👤</div><p>No se encontraron usuarios</p></div></td></tr>`;
         return;
       }
 
@@ -1488,21 +1494,23 @@
 
         const levelBadge = `<span class="badge badge-l1">${u.rol}</span>`;
 
-        let actions = "";
         const currentUserLevel = ROLE_LEVELS[State.user.rol];
         const targetUserLevel = ROLE_LEVELS[u.rol];
 
-        // Se pueden realizar acciones si el nivel del usuario actual es estrictamente inferior (mejor jerarquía) al objetivo
-        if (currentUserLevel < targetUserLevel && u.email !== State.user.email) {
-          if (u.estado === "ACTIVO") {
-            // Revocar solo aplica a usuarios con certificado (Nivel 1 y 2)
-            const hasCert = targetUserLevel <= 2;
-            actions = `
-          <div class="action-group">
-            ${hasCert ? `<button class="btn-sm btn-danger" onclick="revokeUser(${u.id})">Revocar</button>` : ''}
-            <button class="btn-sm btn-baja"  onclick="deleteUser(${u.id})">Baja</button>
-          </div>`;
+        let actionsCell = "";
+        if (isAdmin) {
+          let actions = "";
+          if (currentUserLevel < targetUserLevel && u.email !== State.user.email) {
+            if (u.estado === "ACTIVO") {
+              const hasCert = targetUserLevel <= 2;
+              actions = `
+            <div class="action-group">
+              ${hasCert ? `<button class="btn-sm btn-danger" onclick="revokeUser(${u.id})">Revocar</button>` : ''}
+              <button class="btn-sm btn-baja" onclick="deleteUser(${u.id})">Baja</button>
+            </div>`;
+            }
           }
+          actionsCell = `<td>${actions || '<span style="color:var(--muted)">—</span>'}</td>`;
         }
 
         return `
@@ -1513,7 +1521,7 @@
         <td>${levelBadge}</td>
         <td>${statusBadge}</td>
         <td style="color:var(--muted);font-size:12px">${formatDate(u.fecha_creacion)}</td>
-        <td>${actions || '<span style="color:var(--muted)">—</span>'}</td>
+        ${actionsCell}
       </tr>`;
       }).join("");
     }

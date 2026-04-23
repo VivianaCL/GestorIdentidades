@@ -15,7 +15,6 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     if_failed_login = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Correo electrónico o contraseña incorrectos",
-        headers={"WWW-Authenticate": "Bearer"},
     )
     
     if not user:
