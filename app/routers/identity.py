@@ -262,14 +262,29 @@ def endpoint_renovar_cert(identity_id: int, data: RenovarCertRequest, db: Sessio
 
     check_hierarchy(current_user, target.rol)
 
+    # Paso 1: Revocar el certificado actual
+    target.estado = "REVOCADO"
+    db.commit()
+
+    log_audit_event(
+        db=db,
+        identity_id=identity_id,
+        actor_id=current_user.id,
+        accion="REVOCACION",
+        detalles=f"Certificado revocado automáticamente como parte de la renovación de certificado."
+    )
+
+    # Paso 2: Generar nuevo par de claves y certificado
     ca_priv, ca_cert, _, _ = build_root_ca()
     _, _, pub_obj, pub_pem = generate_key_pair()
     new_cert_pem = generate_user_certificate(pub_obj, target.nombre, ca_priv, ca_cert, days_valid=data.days_valid)
     new_expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=data.days_valid)
 
+    # Paso 3: Activar la identidad con el nuevo certificado
     target.public_key_pem = pub_pem.decode('utf-8')
     target.certificate_pem = new_cert_pem.decode('utf-8')
     target.cert_expires_at = new_expires_at
+    target.estado = "ACTIVO"
     db.commit()
     db.refresh(target)
 
@@ -278,7 +293,7 @@ def endpoint_renovar_cert(identity_id: int, data: RenovarCertRequest, db: Sessio
         identity_id=identity_id,
         actor_id=current_user.id,
         accion="CERT_RENOVADO",
-        detalles=f"Certificado renovado por {data.days_valid} días. Nueva expiración: {new_expires_at.strftime('%Y-%m-%d')}"
+        detalles=f"Nuevo certificado emitido por {data.days_valid} días. Nueva expiración: {new_expires_at.strftime('%Y-%m-%d')}"
     )
 
     return {
