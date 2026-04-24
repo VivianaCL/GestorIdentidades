@@ -1,4 +1,5 @@
-from datetime import timedelta
+import datetime
+from datetime import timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -26,6 +27,13 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     if user.estado != "ACTIVO":
         log_audit_event(db, identity_id=user.id, actor_id=user.id, accion="LOGIN_FAILED", detalles="Usuario bloqueado/inactivo")
         raise HTTPException(status_code=403, detail="La cuenta no está activa.")
+
+    if user.cert_expires_at is not None:
+        expires = user.cert_expires_at
+        now = datetime.datetime.now(timezone.utc) if expires.tzinfo else datetime.datetime.utcnow()
+        if now > expires:
+            log_audit_event(db, identity_id=user.id, actor_id=user.id, accion="LOGIN_FAILED", detalles="Certificado digital vencido")
+            raise HTTPException(status_code=403, detail="Acceso denegado: el certificado digital ha vencido.")
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
