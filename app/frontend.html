@@ -1141,9 +1141,12 @@
   <div class="modal-overlay" id="modal-extend-cert">
     <div class="modal">
       <h2>Extender certificado</h2>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">
         Se reemitirá un nuevo certificado con la duración seleccionada a partir de hoy.
       </p>
+      <div style="background:rgba(217,168,58,0.12);border:1px solid var(--warning);border-radius:var(--radius);padding:10px 14px;margin-bottom:20px;font-size:12px;color:var(--warning)">
+        <strong>Advertencia:</strong> Esta acción <em>no</em> extiende el certificado actual. El certificado vigente será <strong>revocado</strong> y se emitirá uno completamente nuevo. El acceso de la cuenta se interrumpirá brevemente durante el proceso.
+      </div>
       <div class="form-group">
         <label>Nueva duración</label>
         <select id="extend-cert-days">
