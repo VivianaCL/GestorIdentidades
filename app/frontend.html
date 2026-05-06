@@ -787,6 +787,16 @@
       color: var(--danger);
     }
 
+    #toast.toast-warning {
+      border-color: rgba(230, 160, 50, .4);
+      color: #e6a032;
+    }
+
+    #toast.toast-info {
+      border-color: rgba(80, 150, 220, .4);
+      color: #5096dc;
+    }
+
     /* Animations */
     @keyframes fadeIn {
       from {
@@ -1616,11 +1626,9 @@
       }).join("");
     }
 
-    function downloadCert(id) {
-      const cert = State.certs.find(c => c.id === id);
-      if (!cert || !cert.certificate_pem) return;
-      const filename = `cert_${cert.email.replace(/[@.]/g, '_')}.pem`;
-      const blob = new Blob([cert.certificate_pem], { type: 'application/x-pem-file' });
+    function triggerFileDownload(content, filename) {
+      // Crea un enlace temporal en memoria y lo activa para forzar la descarga del archivo
+      const blob = new Blob([content], { type: 'application/x-pem-file' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1629,6 +1637,35 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    }
+
+    async function downloadCert(id) {
+      // Llama al endpoint de descarga para obtener certificado, clave pública y privada por separado
+      const { ok, data } = await api(`/api/v1/identities/${id}/download-cert`);
+      if (!ok) {
+        showToast(data.detail || "Error al descargar el certificado", "error");
+        return;
+      }
+
+      const slug = data.email.replace(/[@.]/g, '_');
+
+      // Descarga el certificado X.509
+      if (data.certificate_pem) {
+        triggerFileDownload(data.certificate_pem, `cert_${slug}.pem`);
+      }
+
+      // Descarga la clave pública
+      if (data.public_key_pem) {
+        triggerFileDownload(data.public_key_pem, `public_key_${slug}.pem`);
+      }
+
+      // Descarga la clave privada solo si el backend la devolvió
+      if (data.private_key_pem) {
+        triggerFileDownload(data.private_key_pem, `private_key_${slug}.pem`);
+        showToast("Certificado y claves descargados. Guarda la clave privada en un lugar seguro.", "warning");
+      } else {
+        showToast("Certificado descargado. No hay clave privada disponible para este usuario.", "info");
+      }
     }
 
     async function loadAudit() {
