@@ -1,27 +1,40 @@
+# Capa de acceso a datos.
+# Configura la conexión a SQLite y expone funciones reutilizables para las
+# operaciones CRUD más frecuentes del sistema (alta, revocación, baja, auditoría).
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Configuración de SQLite  local provisional
+# Base de datos SQLite local; en producción reemplazar por la URL del servidor real
 SQLALCHEMY_DATABASE_URL = "sqlite:///./identities.db"
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False}  # Necesario para SQLite en entornos multi-hilo
 )
+
+# Fábrica de sesiones: cada petición HTTP abre y cierra su propia sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Base declarativa de la que heredan todos los modelos ORM
 Base = declarative_base()
 
 
 def get_db():
+    # Dependencia de FastAPI: entrega una sesión de DB por petición y la cierra al terminar.
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-def create_identity(db, nombre: str, email: str, password_hash: str, rol: str, public_key_pem: str, certificate_pem: str, cert_expires_at=None):
-    """ I. ALTA: Registra una nueva identidad en la BD junto a su material criptográfico. """
+
+def create_identity(db, nombre: str, email: str, password_hash: str, rol: str,
+                    public_key_pem: str, certificate_pem: str,
+                    cert_expires_at=None, private_key_pem_encrypted: str = None):
+    # Registra una nueva identidad con todo su material criptográfico.
+    # La clave privada llega ya cifrada; la DB nunca ve el texto plano.
     from app.models.identity import Identity
 
     new_identity = Identity(
@@ -32,6 +45,7 @@ def create_identity(db, nombre: str, email: str, password_hash: str, rol: str, p
         public_key_pem=public_key_pem,
         certificate_pem=certificate_pem,
         cert_expires_at=cert_expires_at,
+        private_key_pem_encrypted=private_key_pem_encrypted,
         estado="ACTIVO"
     )
     db.add(new_identity)
@@ -39,11 +53,12 @@ def create_identity(db, nombre: str, email: str, password_hash: str, rol: str, p
     db.refresh(new_identity)
     return new_identity
 
+
 def update_identity_status(db, identity_id: int, new_status: str):
-    """ II. REVOCACIÓN: Cambia el estado del certificado en la base de datos a REVOCADO (o el estado enviado). """
+    # Cambia el estado de una identidad (ej. a REVOCADO).
+    # Se usa principalmente en el flujo de revocación de certificados.
     from app.models.identity import Identity
-    
-    
+
     identity = db.query(Identity).filter(Identity.id == identity_id).first()
     if identity:
         identity.estado = new_status
@@ -51,10 +66,12 @@ def update_identity_status(db, identity_id: int, new_status: str):
         db.refresh(identity)
     return identity
 
+
 def delete_identity(db, identity_id: int, hard_delete: bool = False):
-    """ III. BAJA: Marca una identidad como BAJA (Soft Delete) o la elimina completamente. """
+    # Elimina una identidad de forma física (hard) o marca su estado como BAJA (soft).
+    # El sistema actualmente usa hard delete para la operación de BAJA.
     from app.models.identity import Identity
-    
+
     identity = db.query(Identity).filter(Identity.id == identity_id).first()
     if identity:
         if hard_delete:
@@ -66,8 +83,10 @@ def delete_identity(db, identity_id: int, hard_delete: bool = False):
             db.refresh(identity)
     return identity
 
+
 def log_audit_event(db, identity_id: int, actor_id: int, accion: str, detalles: str = ""):
-    """ IV. RASTREO: Registra logs de las acciones realizadas sobre las identidades. """
+    # Inserta un registro de auditoría. Se llama desde cualquier operación relevante
+    # para garantizar trazabilidad completa de las acciones.
     from app.models.identity import AuditLog
 
     log = AuditLog(
@@ -81,10 +100,12 @@ def log_audit_event(db, identity_id: int, actor_id: int, accion: str, detalles: 
     db.refresh(log)
     return log
 
+
 def get_audit_logs(db, identity_id: int = None):
-    """ Obtiene registros del rastreo de movimientos de una identidad específica """
+    # Devuelve los logs de auditoría filtrados por identidad.
+    # Si identity_id es None, retorna el historial completo del sistema.
     from app.models.identity import AuditLog
-    
+
     query = db.query(AuditLog)
     if identity_id:
         query = query.filter(AuditLog.identity_id == identity_id)
