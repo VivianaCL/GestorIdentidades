@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+identity_manager.db
+.pytest_cache/
