@@ -214,3 +214,10 @@ Este proyecto se distribuye bajo la licencia **MIT**.
 ## Contacto
 
 Para dudas, reportes o sugerencias, abre un _issue_ en el repositorio o contacta al equipo de desarrollo a través del correo institucional.
+
+Alberto Palomino Carvajal    A01571511@tec.mx
+Carlos Cuéllar Solís         A01571619@tec.mx
+Daniel Rodríguez Gallegos    A01285849@tec.mx
+Leonardo Albarran Valdes     A01571750@tec.mx
+Luis Javier Jacobo Morimoto  A01571679@tec.mx
+Viviana Carrizales Luna      A01286181@tec.mx
