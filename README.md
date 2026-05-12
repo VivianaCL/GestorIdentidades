@@ -32,7 +32,7 @@ API REST para la gestión del ciclo de vida de identidades digitales dentro de u
 
 ```bash
 # 1. Clonar el repositorio
-git clone <url-del-repositorio>
+git clone <[url-del-repositorio](https://github.com/VivianaCL/GestorIdentidades.git)>
 cd GestorIdentidades
 
 # 2. Crear y activar un entorno virtual (recomendado)
