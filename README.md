@@ -161,7 +161,7 @@ Si deseas colaborar con el proyecto, sigue estos pasos:
 
 1. **Clona el repositorio** y crea una rama con un nombre descriptivo:
    ```bash
-   git clone <url-del-repositorio>
+   git clone <https://github.com/VivianaCL/GestorIdentidades.git>
    cd GestorIdentidades
    git checkout -b feature/nombre-de-tu-cambio
    ```
