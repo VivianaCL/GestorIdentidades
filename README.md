@@ -229,7 +229,7 @@ Para pruebas manuales rápidas puedes usar la documentación interactiva de Fast
 
 ## Licencia de uso
 
-Este proyecto se distribuye bajo la licencia **MIT**.
+Este proyecto se distribuye bajo la licencia **MIT** (cualquiera puede usar, modificar y distribuir el código, incluso comercialmente, mientras se mantenga el aviso de copyright).
 
 ---
 
