@@ -1,5 +1,17 @@
 # Gestor de Identidades
 
+A01571511 - Alberto Palomino Carvajal
+
+A01571619 - Carlos Cuéllar Solís
+
+A01285849 - Daniel Rodríguez Gallegos
+
+A01571750 - Leonardo Albarran Valdes
+
+A01571679 - Luis Javier Jacobo Morimoto
+
+A01286191 - Viviana Carrizales Luna
+
 ## Descripción
 
 API REST para la gestión del ciclo de vida de identidades digitales dentro de una organización. Permite dar de alta, revocar y eliminar colaboradores, emitir certificados X.509 firmados, y auditar cada acción relevante del sistema.
@@ -225,4 +237,4 @@ Leonardo Albarran Valdes     A01571750@tec.mx
 
 Luis Javier Jacobo Morimoto  A01571679@tec.mx
 
-Viviana Carrizales Luna      A01286181@tec.mx
+Viviana Carrizales Luna      A01286191@tec.mx
