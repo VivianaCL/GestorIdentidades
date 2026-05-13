@@ -22,20 +22,24 @@ API REST para la gestión del ciclo de vida de identidades digitales dentro de u
 
 ## Requisitos de instalación
 
-- Python 3.6.8
+- Python 3.6.8 (versión probada; 3.7, 3.8 y 3.9 podrían funcionar pero no han sido verificadas)
 - `pip` (gestor de paquetes de Python)
-- (Opcional) Entorno virtual: `venv` o `virtualenv`
+- (Recomendado) Entorno virtual: `venv` o `virtualenv`
 
 ---
 
 ## Instalación
+
+### Opción A — Con entorno virtual (recomendado)
+
+Evita conflictos con otros proyectos Python instalando las dependencias en un entorno aislado.
 
 ```bash
 # 1. Clonar el repositorio
 git clone <url-del-repositorio>
 cd GestorIdentidades
 
-# 2. Crear y activar un entorno virtual (recomendado)
+# 2. Crear y activar el entorno virtual
 python -m venv venv
 
 # Windows
@@ -47,6 +51,24 @@ source venv/bin/activate
 # 3. Instalar dependencias
 pip install -r requirements.txt
 ```
+
+### Opción B — Sin entorno virtual
+
+Instala las dependencias directamente en el Python del sistema. Útil para pruebas rápidas, pero puede generar conflictos de versiones si tienes otros proyectos.
+
+```bash
+# 1. Clonar el repositorio
+git clone <url-del-repositorio>
+cd GestorIdentidades
+
+# 2. Instalar dependencias globalmente
+pip install -r requirements.txt
+```
+
+> Si tienes múltiples versiones de Python instaladas, usa `pip3` o `python -m pip` para asegurarte de instalar en la versión correcta:
+> ```bash
+> python -m pip install -r requirements.txt
+> ```
 
 ---
 
