@@ -1,5 +1,17 @@
 # Gestor de Identidades
 
+A01571511 - Alberto Palomino Carvajal
+
+A01571619 - Carlos Cuéllar Solís
+
+A01285849 - Daniel Rodríguez Gallegos
+
+A01571750 - Leonardo Albarran Valdes
+
+A01571679 - Luis Javier Jacobo Morimoto
+
+A01286191 - Viviana Carrizales Luna
+
 ## Descripción
 
 API REST para la gestión del ciclo de vida de identidades digitales dentro de una organización. Permite dar de alta, revocar y eliminar colaboradores, emitir certificados X.509 firmados, y auditar cada acción relevante del sistema.
@@ -36,7 +48,7 @@ Evita conflictos con otros proyectos Python instalando las dependencias en un en
 
 ```bash
 # 1. Clonar el repositorio
-git clone <url-del-repositorio>
+git clone <https://github.com/VivianaCL/GestorIdentidades.git>
 cd GestorIdentidades
 
 # 2. Crear y activar el entorno virtual
@@ -183,7 +195,7 @@ Si deseas colaborar con el proyecto, sigue estos pasos:
 
 1. **Clona el repositorio** y crea una rama con un nombre descriptivo:
    ```bash
-   git clone <url-del-repositorio>
+   git clone <https://github.com/VivianaCL/GestorIdentidades.git>
    cd GestorIdentidades
    git checkout -b feature/nombre-de-tu-cambio
    ```
@@ -236,3 +248,15 @@ Este proyecto se distribuye bajo la licencia **MIT** (cualquiera puede usar, mod
 ## Contacto
 
 Para dudas, reportes o sugerencias, abre un _issue_ en el repositorio o contacta al equipo de desarrollo a través del correo institucional.
+
+Alberto Palomino Carvajal    A01571511@tec.mx
+
+Carlos Cuéllar Solís         A01571619@tec.mx
+
+Daniel Rodríguez Gallegos    A01285849@tec.mx
+
+Leonardo Albarran Valdes     A01571750@tec.mx
+
+Luis Javier Jacobo Morimoto  A01571679@tec.mx
+
+Viviana Carrizales Luna      A01286191@tec.mx
