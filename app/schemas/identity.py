@@ -44,3 +44,31 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     # Datos extraídos del payload del JWT durante la validación de sesión.
     email: Optional[str] = None
+
+
+# ── Schemas MFA ───────────────────────────────────────────────────────────────
+
+class MFASetupResponse(BaseModel):
+    # Respuesta al iniciar la configuración de MFA: incluye el secreto y la URI
+    # para que el frontend genere el código QR.
+    secret: str
+    uri: str
+
+class MFAConfirmSetup(BaseModel):
+    # Payload para confirmar la activación de MFA: el secreto provisional
+    # y el primer código TOTP generado por la app del usuario.
+    secret: str
+    code: str
+
+class MFAValidate(BaseModel):
+    # Payload para completar el login cuando MFA está activo.
+    temp_token: str
+    code: str
+
+class MFADisable(BaseModel):
+    # Para desactivar MFA se requiere el código actual como confirmación.
+    code: str
+
+class MFAStatusResponse(BaseModel):
+    # Indica si el usuario autenticado tiene MFA habilitado.
+    mfa_enabled: bool

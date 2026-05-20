@@ -18,6 +18,8 @@ with engine.connect() as _conn:
         "ALTER TABLE identities ADD COLUMN cert_expires_at DATETIME",
         "ALTER TABLE identities ADD COLUMN cert_revalidado BOOLEAN DEFAULT 0",
         "ALTER TABLE identities ADD COLUMN private_key_pem_encrypted TEXT",
+        "ALTER TABLE identities ADD COLUMN mfa_enabled BOOLEAN DEFAULT 0",
+        "ALTER TABLE identities ADD COLUMN totp_secret_encrypted TEXT",
     ]:
         try:
             _conn.execute(text(_col_sql))

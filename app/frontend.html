@@ -56,6 +56,172 @@
       font-family: var(--font-body);
     }
 
+    /* ── Pantalla MFA (segundo factor) ──────────────────────────────── */
+    #mfa-screen {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 30% 20%, #1a1200 0%, var(--bg) 60%);
+      animation: fadeIn .5s ease;
+    }
+    #mfa-screen.active { display: flex; }
+
+    .mfa-code-inputs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 18px 0;
+    }
+    .mfa-code-inputs input {
+      width: 44px;
+      height: 54px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 600;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+      font-family: var(--font-body);
+      transition: border-color .15s;
+    }
+    .mfa-code-inputs input:focus { border-color: var(--accent); }
+
+    /* ── Panel de Temas / Apariencia ────────────────────────────────── */
+    .theme-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .theme-tab {
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      cursor: pointer;
+      transition: color .15s, background .15s;
+    }
+    .theme-tab.active {
+      color: var(--accent);
+      background: rgba(232,160,69,.08);
+    }
+    .theme-tab-panel { display: none; }
+    .theme-tab-panel.active { display: block; }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .color-row:last-child { border-bottom: none; }
+    .color-row-label { font-size: 13px; color: var(--text); }
+    .color-row-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .color-picker-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .color-picker-wrap input[type="color"] {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 2px;
+      background: var(--surface);
+    }
+    .color-hex {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: monospace;
+      width: 60px;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .preset-card {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color .2s, transform .15s;
+    }
+    .preset-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .preset-card.selected { border-color: var(--accent); }
+    .preset-preview {
+      height: 64px;
+      display: flex;
+      gap: 0;
+    }
+    .preset-preview-col { flex: 1; }
+    .preset-info {
+      padding: 10px 12px;
+      background: var(--surface);
+    }
+    .preset-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .preset-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .theme-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+    .btn-reset-theme {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* ── Panel de configuración MFA ─────────────────────────────────── */
+    .mfa-qr-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 16px 0;
+    }
+    .mfa-qr-box #qrcode canvas, .mfa-qr-box #qrcode img {
+      border-radius: 8px;
+    }
+    .mfa-secret-label {
+      font-size: 11px;
+      color: #1a1a1a;
+      word-break: break-all;
+      text-align: center;
+      max-width: 280px;
+    }
+    .mfa-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .mfa-badge.on  { background: rgba(79,184,122,.15); color: var(--success); border: 1px solid var(--success); }
+    .mfa-badge.off { background: rgba(217,79,79,.12);  color: var(--danger);  border: 1px solid var(--danger); }
+
     /* ── Pantalla de Login ───────────────────────────────────────────── */
     #login-screen {
       display: flex;
@@ -891,6 +1057,38 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════════
+     PANTALLA MFA (segundo factor)
+══════════════════════════════════════════════════════════════ -->
+  <div id="mfa-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="butterfly">🦋</div>
+        <div class="login-logo-text">
+          <h1>Casa Monarca</h1>
+          <p>Verificación en dos pasos</p>
+        </div>
+      </div>
+
+      <h2>Código de verificación</h2>
+      <p class="subtitle">Ingresa el código de 6 dígitos de tu aplicación autenticadora</p>
+
+      <div id="mfa-error" class="login-error">Código inválido o expirado.</div>
+
+      <div class="mfa-code-inputs" id="mfa-digits">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      </div>
+
+      <button class="btn-primary" id="btn-mfa" onclick="doMFAValidate()">Verificar</button>
+      <button style="background:none;border:none;color:var(--muted);font-size:12px;margin-top:12px;width:100%;cursor:pointer;" onclick="cancelMFA()">← Volver al inicio de sesión</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
      APP PRINCIPAL
 ══════════════════════════════════════════════════════════════ -->
   <div id="app">
@@ -929,6 +1127,16 @@
           <div class="nav-section-label">Administración</div>
           <div class="nav-item" onclick="showPage('audit')" id="nav-audit">
             <span class="icon">📋</span> Auditoría
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Mi cuenta</div>
+          <div class="nav-item" onclick="showPage('mfa-settings')" id="nav-mfa-settings">
+            <span class="icon">🔐</span> Seguridad MFA
+          </div>
+          <div class="nav-item" onclick="showPage('theme-settings')" id="nav-theme-settings">
+            <span class="icon">🎨</span> Apariencia
           </div>
         </div>
 
@@ -1061,6 +1269,193 @@
               <div class="empty-state">
                 <div class="spinner"></div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Seguridad MFA ─────────────────────────────────────────────── -->
+        <div class="page" id="page-mfa-settings">
+          <div class="page-header">
+            <div>
+              <h1>Seguridad MFA</h1>
+              <p>Autenticación de dos factores para tu cuenta</p>
+            </div>
+          </div>
+
+          <div class="card" style="max-width:520px;">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <h3>Autenticación TOTP</h3>
+              <span id="mfa-status-badge" class="mfa-badge off">● Desactivado</span>
+            </div>
+            <div style="padding:0 20px 20px;">
+              <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">
+                Usa Google Authenticator, Authy u otra app compatible para generar códigos de verificación cada 30 segundos.
+              </p>
+
+              <!-- Estado: MFA desactivado → mostrar flujo de activación -->
+              <div id="mfa-setup-section">
+                <button class="btn-save" onclick="startMFASetup()" id="btn-start-mfa-setup">Activar MFA</button>
+
+                <!-- Paso 1: mostrar QR -->
+                <div id="mfa-setup-step1" style="display:none;margin-top:20px;">
+                  <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+                    Escanea este código QR con tu aplicación autenticadora o ingresa el código manualmente.
+                  </p>
+                  <div class="mfa-qr-box">
+                    <div id="qrcode"></div>
+                    <p class="mfa-secret-label">Clave manual: <strong id="mfa-secret-display"></strong></p>
+                  </div>
+                  <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+                    Una vez configurada la app, ingresa el código de 6 dígitos para confirmar:
+                  </p>
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <input type="text" id="mfa-confirm-code" maxlength="6" inputmode="numeric"
+                      placeholder="000000"
+                      style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:18px;text-align:center;letter-spacing:6px;outline:none;" />
+                    <button class="btn-save" onclick="confirmMFASetup()">Confirmar</button>
+                  </div>
+                  <div id="mfa-setup-error" class="login-error" style="margin-top:10px;"></div>
+                </div>
+              </div>
+
+              <!-- Estado: MFA activado → mostrar opción de desactivar -->
+              <div id="mfa-disable-section" style="display:none;">
+                <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+                  MFA está activo. Para desactivarlo ingresa un código de tu app autenticadora.
+                </p>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <input type="text" id="mfa-disable-code" maxlength="6" inputmode="numeric"
+                    placeholder="000000"
+                    style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:18px;text-align:center;letter-spacing:6px;outline:none;" />
+                  <button style="background:var(--danger);color:#fff;font-size:13px;font-weight:600;padding:9px 18px;border-radius:8px;" onclick="disableMFA()">Desactivar</button>
+                </div>
+                <div id="mfa-disable-error" class="login-error" style="margin-top:10px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Apariencia / Temas ─────────────────────────────────────────── -->
+        <div class="page" id="page-theme-settings">
+          <div class="page-header">
+            <div>
+              <h1>Apariencia</h1>
+              <p>Personaliza los colores de la interfaz</p>
+            </div>
+          </div>
+
+          <div class="card" style="max-width:600px;">
+            <div class="card-header"><h3>Configuración de tema</h3></div>
+            <div style="padding:0 20px 24px;">
+
+              <!-- Pestañas -->
+              <div class="theme-tabs">
+                <button class="theme-tab active" onclick="switchThemeTab('simple')">Sencilla</button>
+                <button class="theme-tab" onclick="switchThemeTab('advanced')">Avanzada</button>
+                <button class="theme-tab" onclick="switchThemeTab('presets')">Presets</button>
+              </div>
+
+              <!-- ── Pestaña Sencilla ── -->
+              <div class="theme-tab-panel active" id="theme-panel-simple">
+                <div class="color-row">
+                  <div><div class="color-row-label">Fondo principal</div><div class="color-row-sub">Color de fondo de toda la app</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-bg"></span>
+                    <input type="color" id="pick-bg" oninput="livePreview('--bg', this.value, 'hex-bg')" onchange="livePreview('--bg', this.value, 'hex-bg')" />
+                  </div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Fondo de tarjetas</div><div class="color-row-sub">Sidebars, modales y paneles</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-surface"></span>
+                    <input type="color" id="pick-surface" oninput="livePreview('--surface', this.value, 'hex-surface')" onchange="livePreview('--surface', this.value, 'hex-surface')" />
+                  </div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Color de acento</div><div class="color-row-sub">Botones principales, links y highlights</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-accent"></span>
+                    <input type="color" id="pick-accent" oninput="livePreview('--accent', this.value, 'hex-accent')" onchange="livePreview('--accent', this.value, 'hex-accent')" />
+                  </div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Texto principal</div><div class="color-row-sub">Color del texto en toda la interfaz</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-text"></span>
+                    <input type="color" id="pick-text" oninput="livePreview('--text', this.value, 'hex-text')" onchange="livePreview('--text', this.value, 'hex-text')" />
+                  </div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Bordes</div><div class="color-row-sub">Líneas divisorias y contornos</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-border"></span>
+                    <input type="color" id="pick-border" oninput="livePreview('--border', this.value, 'hex-border')" onchange="livePreview('--border', this.value, 'hex-border')" />
+                  </div>
+                </div>
+                <div class="theme-actions">
+                  <button class="btn-reset-theme" onclick="applyPreset('default')">Restablecer</button>
+                  <button class="btn-save" onclick="saveTheme()">Guardar tema</button>
+                </div>
+              </div>
+
+              <!-- ── Pestaña Avanzada ── -->
+              <div class="theme-tab-panel" id="theme-panel-advanced">
+                <div class="color-row">
+                  <div><div class="color-row-label">Fondo principal</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-bg"></span><input type="color" id="apick-bg" oninput="livePreview('--bg', this.value, 'ahex-bg')" onchange="livePreview('--bg', this.value, 'ahex-bg')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Fondo de tarjetas</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-surface"></span><input type="color" id="apick-surface" oninput="livePreview('--surface', this.value, 'ahex-surface')" onchange="livePreview('--surface', this.value, 'ahex-surface')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Bordes</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-border"></span><input type="color" id="apick-border" oninput="livePreview('--border', this.value, 'ahex-border')" onchange="livePreview('--border', this.value, 'ahex-border')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Acento principal</div><div class="color-row-sub">Botones, links, nav activo</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-accent"></span><input type="color" id="apick-accent" oninput="livePreview('--accent', this.value, 'ahex-accent')" onchange="livePreview('--accent', this.value, 'ahex-accent')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Acento secundario</div><div class="color-row-sub">Hover de botones, gradientes</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-accent2"></span><input type="color" id="apick-accent2" oninput="livePreview('--accent2', this.value, 'ahex-accent2')" onchange="livePreview('--accent2', this.value, 'ahex-accent2')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Texto principal</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-text"></span><input type="color" id="apick-text" oninput="livePreview('--text', this.value, 'ahex-text')" onchange="livePreview('--text', this.value, 'ahex-text')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Texto secundario</div><div class="color-row-sub">Labels, subtítulos, texto muted</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-muted"></span><input type="color" id="apick-muted" oninput="livePreview('--muted', this.value, 'ahex-muted')" onchange="livePreview('--muted', this.value, 'ahex-muted')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Peligro / Error</div><div class="color-row-sub">Alertas, baja de usuarios, errores</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-danger"></span><input type="color" id="apick-danger" oninput="livePreview('--danger', this.value, 'ahex-danger')" onchange="livePreview('--danger', this.value, 'ahex-danger')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Éxito</div><div class="color-row-sub">Confirmaciones, estados activos</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-success"></span><input type="color" id="apick-success" oninput="livePreview('--success', this.value, 'ahex-success')" onchange="livePreview('--success', this.value, 'ahex-success')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Advertencia</div><div class="color-row-sub">Certificados próximos a vencer, avisos</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-warning"></span><input type="color" id="apick-warning" oninput="livePreview('--warning', this.value, 'ahex-warning')" onchange="livePreview('--warning', this.value, 'ahex-warning')" /></div>
+                </div>
+                <div class="theme-actions">
+                  <button class="btn-reset-theme" onclick="applyPreset('default')">Restablecer</button>
+                  <button class="btn-save" onclick="saveTheme()">Guardar tema</button>
+                </div>
+              </div>
+
+              <!-- ── Pestaña Presets ── -->
+              <div class="theme-tab-panel" id="theme-panel-presets">
+                <div class="preset-grid" id="preset-grid">
+                  <!-- generado por JS -->
+                </div>
+                <div class="theme-actions">
+                  <button class="btn-save" onclick="saveTheme()">Aplicar preset</button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1250,6 +1645,12 @@
         return;
       }
 
+      // Si el servidor pide segundo factor, redirigir a pantalla MFA
+      if (data.mfa_required) {
+        showMFAScreen(data.temp_token);
+        return;
+      }
+
       State.token = data.access_token;
 
       const base64Url = State.token.split('.')[1];
@@ -1270,6 +1671,7 @@
       State.user = null;
       localStorage.removeItem("sgi_token");
       localStorage.removeItem("sgi_user");
+      applyThemeToDOM(PRESETS.default);
       document.getElementById("app").style.display = "none";
       document.getElementById("login-screen").style.display = "flex";
     }
@@ -1318,6 +1720,7 @@
         if (e.key === "Enter") doLogin();
       });
 
+      applyThemeToDOM(getCurrentTheme());
       loadDashboard();
     }
 
@@ -1332,6 +1735,8 @@
       if (name === "certs") loadCerts();
       if (name === "audit") loadAudit();
       if (name === "dashboard") loadDashboard();
+      if (name === "mfa-settings") loadMFAStatus();
+      if (name === "theme-settings") initThemePage();
     }
 
     async function loadDashboard() {
@@ -1764,6 +2169,315 @@
         showToast(data.detail || "Error al revalidar certificado", "error");
       }
     }
+
+    // ── MFA: login segundo factor ────────────────────────────────────────────
+
+    let _mfaTempToken = null;
+
+    function showMFAScreen(tempToken) {
+      _mfaTempToken = tempToken;
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("mfa-screen").classList.add("active");
+      document.getElementById("mfa-error").classList.remove("visible");
+      // Limpiar dígitos
+      document.querySelectorAll("#mfa-digits input").forEach(i => i.value = "");
+      document.querySelector("#mfa-digits input").focus();
+    }
+
+    function cancelMFA() {
+      _mfaTempToken = null;
+      document.getElementById("mfa-screen").classList.remove("active");
+      document.getElementById("login-screen").style.display = "flex";
+    }
+
+    function getMFACode() {
+      return Array.from(document.querySelectorAll("#mfa-digits input")).map(i => i.value).join("");
+    }
+
+    async function doMFAValidate() {
+      const code = getMFACode();
+      const errEl = document.getElementById("mfa-error");
+      const btn = document.getElementById("btn-mfa");
+      errEl.classList.remove("visible");
+      if (code.length !== 6) {
+        errEl.textContent = "Ingresa los 6 dígitos del código.";
+        errEl.classList.add("visible");
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Verificando…';
+      const res = await fetch(API + "/api/v1/auth/mfa/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ temp_token: _mfaTempToken, code })
+      });
+      const data = await res.json().catch(() => ({}));
+      btn.disabled = false;
+      btn.innerHTML = "Verificar";
+      if (!res.ok) {
+        errEl.textContent = data.detail || "Código inválido o sesión expirada.";
+        errEl.classList.add("visible");
+        document.querySelectorAll("#mfa-digits input").forEach(i => i.value = "");
+        document.querySelector("#mfa-digits input").focus();
+        return;
+      }
+      // Éxito: misma lógica que el login normal
+      document.getElementById("mfa-screen").classList.remove("active");
+      State.token = data.access_token;
+      const base64Url = State.token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jwtPayload = JSON.parse(decodeURIComponent(escape(window.atob(base64))));
+      State.user = { email: jwtPayload.sub, rol: jwtPayload.rol };
+      localStorage.setItem("sgi_token", data.access_token);
+      localStorage.setItem("sgi_user", JSON.stringify(State.user));
+      _mfaTempToken = null;
+      initApp();
+    }
+
+    // Navegación automática entre celdas de código MFA
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll("#mfa-digits input").forEach((input, idx, all) => {
+        input.addEventListener("input", () => {
+          input.value = input.value.replace(/[^0-9]/g, "").slice(-1);
+          if (input.value && idx < all.length - 1) all[idx + 1].focus();
+          if (idx === all.length - 1 && getMFACode().length === 6) doMFAValidate();
+        });
+        input.addEventListener("keydown", e => {
+          if (e.key === "Backspace" && !input.value && idx > 0) all[idx - 1].focus();
+        });
+      });
+    });
+
+    // ── MFA: configuración desde el panel ───────────────────────────────────
+
+    let _mfaProvisionSecret = null;
+
+    async function loadMFAStatus() {
+      const { ok, data } = await api("/api/v1/auth/mfa/status");
+      if (!ok) return;
+      const enabled = data.mfa_enabled;
+      const badge = document.getElementById("mfa-status-badge");
+      badge.textContent = enabled ? "● Activado" : "● Desactivado";
+      badge.className = "mfa-badge " + (enabled ? "on" : "off");
+      document.getElementById("mfa-setup-section").style.display = enabled ? "none" : "block";
+      document.getElementById("mfa-disable-section").style.display = enabled ? "block" : "none";
+      // Resetear formulario de setup
+      document.getElementById("mfa-setup-step1").style.display = "none";
+      document.getElementById("btn-start-mfa-setup").style.display = "inline-block";
+      _mfaProvisionSecret = null;
+    }
+
+    async function startMFASetup() {
+      const { ok, data } = await api("/api/v1/auth/mfa/setup", "POST");
+      if (!ok) { showToast(data.detail || "Error al iniciar MFA", "error"); return; }
+      _mfaProvisionSecret = data.secret;
+      document.getElementById("mfa-secret-display").textContent = data.secret;
+      document.getElementById("btn-start-mfa-setup").style.display = "none";
+      document.getElementById("mfa-setup-step1").style.display = "block";
+      // Generar QR usando API externa (no requiere librería JS)
+      const qrDiv = document.getElementById("qrcode");
+      qrDiv.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(data.uri);
+      img.alt = "Código QR MFA";
+      img.style.borderRadius = "8px";
+      qrDiv.appendChild(img);
+      document.getElementById("mfa-confirm-code").focus();
+    }
+
+    async function confirmMFASetup() {
+      const code = document.getElementById("mfa-confirm-code").value.trim();
+      const errEl = document.getElementById("mfa-setup-error");
+      errEl.classList.remove("visible");
+      if (code.length !== 6) {
+        errEl.textContent = "El código debe tener 6 dígitos.";
+        errEl.classList.add("visible");
+        return;
+      }
+      const { ok, data } = await api("/api/v1/auth/mfa/confirm-setup", "POST", { secret: _mfaProvisionSecret, code });
+      if (!ok) {
+        errEl.textContent = data.detail || "Error al confirmar MFA.";
+        errEl.classList.add("visible");
+        return;
+      }
+      showToast("MFA activado correctamente", "success");
+      document.getElementById("mfa-confirm-code").value = "";
+      loadMFAStatus();
+    }
+
+    async function disableMFA() {
+      const code = document.getElementById("mfa-disable-code").value.trim();
+      const errEl = document.getElementById("mfa-disable-error");
+      errEl.classList.remove("visible");
+      if (code.length !== 6) {
+        errEl.textContent = "El código debe tener 6 dígitos.";
+        errEl.classList.add("visible");
+        return;
+      }
+      const { ok, data } = await api("/api/v1/auth/mfa/disable", "POST", { code });
+      if (!ok) {
+        errEl.textContent = data.detail || "Error al desactivar MFA.";
+        errEl.classList.add("visible");
+        return;
+      }
+      showToast("MFA desactivado", "success");
+      document.getElementById("mfa-disable-code").value = "";
+      loadMFAStatus();
+    }
+
+    // ── Sistema de Temas ─────────────────────────────────────────────────────
+
+    const THEME_VARS = ['--bg','--surface','--border','--accent','--accent2','--text','--muted','--danger','--success','--warning'];
+
+    const PRESETS = {
+      default: {
+        name: 'Por defecto', desc: 'Tema original del sistema',
+        '--bg': '#0f1117', '--surface': '#181c27', '--border': '#252a38',
+        '--accent': '#e8a045', '--accent2': '#c46a1f', '--text': '#e4e6ed',
+        '--muted': '#7a8099', '--danger': '#d94f4f', '--success': '#4fb87a', '--warning': '#d9a83a'
+      },
+      dark: {
+        name: 'Oscuro', desc: 'Tonos negros profundos',
+        '--bg': '#000000', '--surface': '#0d0d0d', '--border': '#1c1c1c',
+        '--accent': '#e8a045', '--accent2': '#c46a1f', '--text': '#ffffff',
+        '--muted': '#4a4a4a', '--danger': '#d94f4f', '--success': '#4fb87a', '--warning': '#d9a83a'
+      },
+      light: {
+        name: 'Claro', desc: 'Portal clásico de fondo blanco',
+        '--bg': '#f0f2f5', '--surface': '#ffffff', '--border': '#dde1ea',
+        '--accent': '#1a73e8', '--accent2': '#1557b0', '--text': '#1a1a2e',
+        '--muted': '#6b7280', '--danger': '#dc2626', '--success': '#16a34a', '--warning': '#d97706'
+      },
+      monarca: {
+        name: 'Casa Monarca', desc: 'Blanco con tonos naranjas institucionales',
+        '--bg': '#ffffff', '--surface': '#fff8f0', '--border': '#fde0b8',
+        '--accent': '#e8a045', '--accent2': '#c46a1f', '--text': '#1a1208',
+        '--muted': '#8a6a3a', '--danger': '#d94f4f', '--success': '#4fb87a', '--warning': '#c46a1f'
+      }
+    };
+
+    function getCurrentTheme() {
+      const email = State.user ? State.user.email : null;
+      const key = email ? 'sgi_theme_' + email : null;
+      const saved = key ? localStorage.getItem(key) : null;
+      return saved ? JSON.parse(saved) : { ...PRESETS.default };
+    }
+
+    function applyThemeToDOM(theme) {
+      const root = document.documentElement.style;
+      THEME_VARS.forEach(v => { if (theme[v]) root.setProperty(v, theme[v]); });
+    }
+
+    function saveTheme() {
+      const current = {};
+      THEME_VARS.forEach(v => {
+        current[v] = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+      });
+      if (!State.user) return;
+      localStorage.setItem('sgi_theme_' + State.user.email, JSON.stringify(current));
+      showToast('Tema guardado correctamente', 'success');
+    }
+
+    function livePreview(varName, value, hexId) {
+      document.documentElement.style.setProperty(varName, value);
+      const el = document.getElementById(hexId);
+      if (el) el.textContent = value.toUpperCase();
+      // Sincronizar picker duplicado entre sencilla y avanzada
+      const map = {
+        '--bg': ['pick-bg','apick-bg'], '--surface': ['pick-surface','apick-surface'],
+        '--border': ['pick-border','apick-border'], '--accent': ['pick-accent','apick-accent'],
+        '--accent2': [null,'apick-accent2'], '--text': ['pick-text','apick-text'],
+        '--muted': [null,'apick-muted'], '--danger': [null,'apick-danger'],
+        '--success': [null,'apick-success'], '--warning': [null,'apick-warning']
+      };
+      (map[varName] || []).forEach(id => {
+        if (id) { const el = document.getElementById(id); if (el && el.value !== value) el.value = value; }
+      });
+    }
+
+    function applyPreset(key) {
+      const preset = PRESETS[key];
+      if (!preset) return;
+      THEME_VARS.forEach(v => { if (preset[v]) document.documentElement.style.setProperty(v, preset[v]); });
+      syncPickersFromDOM();
+      highlightSelectedPreset(key);
+    }
+
+    function syncPickersFromDOM() {
+      const style = getComputedStyle(document.documentElement);
+      const pickMap = {
+        '--bg':      [['pick-bg','hex-bg'],['apick-bg','ahex-bg']],
+        '--surface': [['pick-surface','hex-surface'],['apick-surface','ahex-surface']],
+        '--border':  [['pick-border','hex-border'],['apick-border','ahex-border']],
+        '--accent':  [['pick-accent','hex-accent'],['apick-accent','ahex-accent']],
+        '--accent2': [[null,null],['apick-accent2','ahex-accent2']],
+        '--text':    [['pick-text','hex-text'],['apick-text','ahex-text']],
+        '--muted':   [[null,null],['apick-muted','ahex-muted']],
+        '--danger':  [[null,null],['apick-danger','ahex-danger']],
+        '--success': [[null,null],['apick-success','ahex-success']],
+        '--warning': [[null,null],['apick-warning','ahex-warning']],
+      };
+      Object.entries(pickMap).forEach(([varName, pairs]) => {
+        const raw = style.getPropertyValue(varName).trim();
+        const hex = rgbToHex(raw) || raw;
+        pairs.forEach(([pickId, hexId]) => {
+          if (pickId) { const el = document.getElementById(pickId); if (el) el.value = hex; }
+          if (hexId)  { const el = document.getElementById(hexId);  if (el) el.textContent = hex.toUpperCase(); }
+        });
+      });
+    }
+
+    function rgbToHex(color) {
+      // Convierte "rgb(r,g,b)" a "#rrggbb"; si ya es hex lo devuelve tal cual
+      if (color.startsWith('#')) return color;
+      const m = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+      if (!m) return color;
+      return '#' + [m[1],m[2],m[3]].map(n => parseInt(n).toString(16).padStart(2,'0')).join('');
+    }
+
+    function highlightSelectedPreset(key) {
+      document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+      const card = document.getElementById('preset-' + key);
+      if (card) card.classList.add('selected');
+    }
+
+    function renderPresetGrid() {
+      const grid = document.getElementById('preset-grid');
+      grid.innerHTML = '';
+      Object.entries(PRESETS).forEach(([key, p]) => {
+        const swatches = ['--bg','--surface','--accent','--accent2','--text'].map(v =>
+          `<div class="preset-preview-col" style="background:${p[v]}"></div>`
+        ).join('');
+        const card = document.createElement('div');
+        card.className = 'preset-card';
+        card.id = 'preset-' + key;
+        card.onclick = () => { applyPreset(key); };
+        card.innerHTML = `<div class="preset-preview">${swatches}</div>
+          <div class="preset-info"><div class="preset-name">${p.name}</div><div class="preset-desc">${p.desc}</div></div>`;
+        grid.appendChild(card);
+      });
+      // Marcar el preset activo si coincide con alguno
+      const current = getCurrentTheme();
+      Object.keys(PRESETS).forEach(key => {
+        if (THEME_VARS.every(v => (PRESETS[key][v] || '') === (current[v] || ''))) highlightSelectedPreset(key);
+      });
+    }
+
+    function switchThemeTab(name) {
+      document.querySelectorAll('.theme-tab').forEach((t, i) => {
+        t.classList.toggle('active', ['simple','advanced','presets'][i] === name);
+      });
+      document.querySelectorAll('.theme-tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('theme-panel-' + name).classList.add('active');
+    }
+
+    function initThemePage() {
+      syncPickersFromDOM();
+      renderPresetGrid();
+    }
+
+    // Al cargar la página no hay usuario aún; se aplica el default hasta que inicie sesión
+    applyThemeToDOM(PRESETS.default);
 
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("login-pass").addEventListener("keydown", e => {

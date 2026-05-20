@@ -27,6 +27,9 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 
+# TOTP para autenticación multifactor
+import pyotp
+
 # Contexto de hashing para contraseñas de usuario (bcrypt)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -113,6 +116,49 @@ def get_current_identity(token: str = Depends(oauth2_scheme), db: Session = Depe
         return user
     finally:
         local_db.close()
+
+
+# ── MFA / TOTP ───────────────────────────────────────────────────────────────
+
+MFA_TOKEN_EXPIRE_MINUTES = 5  # El token temporal de MFA expira en 5 minutos
+
+def generate_totp_secret() -> str:
+    # Genera un secreto aleatorio en base32 compatible con Google Authenticator.
+    return pyotp.random_base32()
+
+def get_totp_uri(secret: str, email: str) -> str:
+    # Devuelve la URI otpauth:// para mostrar como QR al usuario.
+    totp = pyotp.TOTP(secret)
+    return totp.provisioning_uri(name=email, issuer_name="Casa Monarca SGI")
+
+def verify_totp_code(secret: str, code: str) -> bool:
+    # Valida el código TOTP con una ventana de ±1 intervalo (30s) para tolerar drift de reloj.
+    totp = pyotp.TOTP(secret)
+    return totp.verify(code, valid_window=1)
+
+def create_mfa_pending_token(email: str) -> str:
+    # Emite un JWT de corta vida que indica que el usuario completó la primera
+    # fase (contraseña) pero aún debe validar el segundo factor TOTP.
+    expire = datetime.datetime.utcnow() + datetime.timedelta(minutes=MFA_TOKEN_EXPIRE_MINUTES)
+    return jwt.encode(
+        {"sub": email, "mfa_pending": True, "exp": expire},
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+def decode_mfa_pending_token(token: str) -> str:
+    # Decodifica el token temporal; lanza excepción si es inválido, expirado
+    # o si no corresponde a una sesión MFA pendiente.
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if not payload.get("mfa_pending"):
+            raise ValueError("Token no es de tipo MFA pendiente")
+        email = payload.get("sub")
+        if not email:
+            raise ValueError("Token sin sujeto")
+        return email
+    except JWTError as exc:
+        raise ValueError("Token MFA inválido o expirado") from exc
 
 
 # ── Generación de material criptográfico ─────────────────────────────────────

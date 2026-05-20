@@ -26,6 +26,9 @@ class Identity(Base):
     cert_expires_at = Column(DateTime(timezone=True), nullable=True)    # Fecha límite del certificado
     cert_revalidado = Column(Boolean, default=False, nullable=True)     # Marca si fue reactivado por un Admin
 
+    mfa_enabled = Column(Boolean, default=False, nullable=False)        # Si el usuario tiene TOTP activo
+    totp_secret_encrypted = Column(String, nullable=True)               # Secreto TOTP cifrado con Fernet
+
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
     fecha_modificacion = Column(DateTime(timezone=True), onupdate=func.now())
 
