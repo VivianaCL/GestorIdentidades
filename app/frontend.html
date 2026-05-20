@@ -913,6 +913,9 @@
           <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
             <span class="icon">📊</span> Dashboard
           </div>
+          <div class="nav-item" onclick="showPage('email')" id="nav-email" style="display:none">
+            <span class="icon">✉️</span> Correo Seguro
+          </div>
         </div>
 
         <div class="nav-section" id="nav-users-section">
@@ -1065,6 +1068,46 @@
           </div>
         </div>
 
+        <!-- ── Correos ──────────────────────────────────────────────── -->
+        <div class="page" id="page-email">
+          <div class="page-header">
+            <div>
+              <h1>Envío de Correo Firmado</h1>
+              <p>Envía correos seguros a través de Outlook con firma criptográfica PSS y certificado X.509 adjunto.</p>
+            </div>
+          </div>
+
+          <div class="card" style="max-width: 700px; padding: 28px;">
+            <div style="background: rgba(79, 184, 122, .12); color: var(--success); padding: 14px; border-radius: 8px; margin-bottom: 24px; font-size: 13px; border: 1px solid rgba(79, 184, 122, .25); display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 16px;">✅</span> Usando el servidor SMTP de Outlook configurado en .env (Local)
+            </div>
+            
+            <div id="email-form-group">
+              <div class="form-group">
+                <label>Destinatario (Para)</label>
+                <input type="email" id="email-to" placeholder="correo@institucion.org" />
+              </div>
+              <div class="form-group">
+                <label>Asunto</label>
+                <input type="text" id="email-subject" placeholder="Asunto del correo seguro" />
+              </div>
+              <div class="form-group">
+                <label>Mensaje</label>
+                <textarea id="email-body" rows="8" placeholder="Escribe tu mensaje confidencial aquí..." style="width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; color: var(--text); font-family: var(--font-body); font-size: 14px; outline: none; resize: vertical; transition: border-color .2s;"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Archivos adjuntos (opcional)</label>
+                <input type="text" id="email-attachments" placeholder="Ingresa texto del archivo (separado por comas)" />
+                <p style="font-size: 11px; color: var(--muted); margin-top: 6px;">Por simplicidad en la demo, los adjuntos se envían como archivos .txt con el contenido que escribas.</p>
+              </div>
+              
+              <button class="btn-save" id="btn-send-email" onclick="sendSignedEmail()" style="width: 100%; margin-top: 16px; padding: 14px; font-size: 14px;">
+                <span class="icon">✉️</span> Firmar y Enviar a través de Outlook
+              </button>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
   </div>
@@ -1196,6 +1239,7 @@
       users: [],
       filteredUsers: [],
       certs: [],
+      ms_token: null,
     };
 
     const API = "";
@@ -1262,6 +1306,7 @@
       localStorage.setItem("sgi_user", JSON.stringify(State.user));
 
       initApp();
+      handleOAuthCallback();
     }
 
     async function doLogout() {
@@ -1282,7 +1327,12 @@
       State.user = JSON.parse(user);
 
       const { ok } = await api("/api/v1/identities/");
-      if (ok) { initApp(); } else { doLogout(); }
+      if (ok) { 
+        initApp(); 
+        handleOAuthCallback();
+      } else { 
+        doLogout(); 
+      }
     }
 
     function initApp() {
@@ -1312,6 +1362,13 @@
         document.getElementById("nav-certs").style.display = "flex";
       } else {
         document.getElementById("nav-certs").style.display = "none";
+      }
+
+      // Solo los que tienen certificado (Admin, Coordinator) pueden enviar correos firmados
+      if (ROLE_LEVELS[u.rol] <= 2) {
+        document.getElementById("nav-email").style.display = "flex";
+      } else {
+        document.getElementById("nav-email").style.display = "none";
       }
 
       document.getElementById("login-pass").addEventListener("keydown", e => {
@@ -1765,7 +1822,51 @@
       }
     }
 
+    async function sendSignedEmail() {
+      const btn = document.getElementById("btn-send-email");
+      const to_email = document.getElementById("email-to").value.trim();
+      const subject = document.getElementById("email-subject").value.trim();
+      const body_text = document.getElementById("email-body").value.trim();
+      const attachmentsRaw = document.getElementById("email-attachments").value.trim();
+      
+      if (!to_email || !subject || !body_text) {
+        showToast("Destinatario, asunto y mensaje son obligatorios.", "error");
+        return;
+      }
+      
+      const attachments = attachmentsRaw ? attachmentsRaw.split(",").map((a, i) => ({
+        filename: `adjunto_${i+1}.txt`,
+        content: a.trim()
+      })).filter(a => a.content) : [];
+      
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Enviando...';
+      
+      const { ok, data } = await api("/api/v1/mail/send-signed", "POST", {
+        to_email,
+        subject,
+        body_text,
+        attachments,
+        ms_access_token: "not-needed"
+      });
+
+      
+      btn.disabled = false;
+      btn.innerHTML = '<span class="icon">✉️</span> Firmar y Enviar a través de Outlook';
+      
+      if (ok) {
+        showToast(data.message || "Correo firmado y enviado correctamente.", "success");
+        document.getElementById("email-to").value = "";
+        document.getElementById("email-subject").value = "";
+        document.getElementById("email-body").value = "";
+        document.getElementById("email-attachments").value = "";
+      } else {
+        showToast(data.detail || "Error al enviar el correo.", "error");
+      }
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
+
       document.getElementById("login-pass").addEventListener("keydown", e => {
         if (e.key === "Enter") doLogin();
       });

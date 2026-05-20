@@ -3,6 +3,11 @@
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde el archivo .env
+load_dotenv()
+
 from app.routers import identity
 from app.db.database import engine, Base, SessionLocal
 from app.models.identity import Identity, AuditLog
@@ -39,8 +44,7 @@ def serve_frontend():
         return f.read()
 
 
-from app.routers import identity, auth
-
+from app.routers import identity, auth, email_router
 
 @app.on_event("startup")
 def cleanup_lower_level_certs():
@@ -60,6 +64,7 @@ def cleanup_lower_level_certs():
 # Registro de routers con sus prefijos de URL
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(identity.router, prefix="/api/v1/identities", tags=["Identities"])
+app.include_router(email_router.router, prefix="/api/v1", tags=["Email and Auth Graph"])
 
 
 @app.get("/health", tags=["General"])
