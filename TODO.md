@@ -13,14 +13,14 @@
 
 ## Nuevas Funcionalidades
 
-- [ ] **Sistema de firma de correos.**
-  Permitir que las identidades firmen digitalmente correos electrónicos usando su clave privada RSA (S/MIME o PGP). Incluir endpoint para exportar el certificado en formato compatible con clientes de correo.
+- [x] **Sistema de firma de correos.**
+  Mensajería interna con firma RSA-PSS SHA-256 y verificación integrada. Mensajería externa con enlace de un solo uso y página pública de verificación. Firma S/MIME disponible desde la pestaña Certificados.
 
-- [ ] **Inicio de sesión por llave criptográfica.**
-  Añadir un flujo de autenticación alternativo donde administradores y coordinadores puedan autenticarse presentando su llave privada en lugar de usuario/contraseña. El servidor verificaría una firma sobre un challenge aleatorio (similar a SSH).
+- [x] **Inicio de sesión por llave criptográfica.**
+  Flujo challenge-response para Admin y Coordinator: el servidor emite un nonce, el navegador lo firma con la clave privada local (Web Crypto API) y el servidor verifica la firma RSA-PSS contra la clave pública almacenada. Incluye endpoint para descargar la clave privada PEM desde "Mi cuenta → Seguridad MFA".
 
-- [ ] **Expiración automática de usuarios efímeros.**
-  Los usuarios efímeros persisten en DB aunque su certificado haya vencido. Añadir tarea de limpieza periódica (o verificación en login) que elimine o marque como `BAJA` a los usuarios cuyo `cert_expires_at` haya pasado.
+- [x] **Expiración automática de usuarios efímeros.**
+  Usuarios External y Operative con `cert_expires_at` vencido se marcan como `BAJA` automáticamente en tres momentos: arranque del servidor, intento de login propio, y carga de la lista de colaboradores (máximo una vez por hora).
 
 ## Calidad y Mantenimiento
 

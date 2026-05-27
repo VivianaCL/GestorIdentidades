@@ -4,18 +4,27 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.db.database import get_db, create_identity, log_audit_event, update_identity_status, delete_identity, get_audit_logs
+from app.db.database import get_db, create_identity, log_audit_event, update_identity_status, delete_identity, get_audit_logs, expire_stale_identities
 from app.models.identity import Identity
-from app.schemas.identity import IdentityCreate, IdentityResponse, IdentityStatusUpdate
+from app.schemas.identity import IdentityCreate, IdentityResponse, IdentityStatusUpdate, BajaRequest, SMimeSignRequest
 from app.core.crypto import (
     build_root_ca, generate_key_pair, generate_user_certificate,
     get_current_identity, get_password_hash, create_ephemeral_certificate,
-    encrypt_private_key, decrypt_private_key
+    encrypt_private_key, decrypt_private_key,
+    sign_smime
 )
+from fastapi.responses import Response
 from pydantic import BaseModel
 import datetime
 
 router = APIRouter()
+
+# Limpieza lazy: se ejecuta como máximo una vez por hora cuando se pide la lista.
+# En HostGator el proceso puede no reiniciarse durante horas, así que este mecanismo
+# cubre el intervalo entre reinicios sin necesidad de cron ni threads.
+import time as _time
+_last_expire_check: float = 0.0
+_EXPIRE_CHECK_INTERVAL = 3600  # segundos
 
 
 # ── Esquemas de request locales ───────────────────────────────────────────────
@@ -68,6 +77,13 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
     Solo el Admin puede ejecutarlo; solo puede crear roles de nivel inferior al suyo.
     Retorna la identidad creada junto con su certificado y clave privada (única entrega).
     """
+    # El consentimiento explícito del titular es obligatorio (Derecho ARCO, punto 4)
+    if not data.consentimiento_alta:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Se requiere consentimiento explícito del titular para registrar sus datos (Derecho ARCO)."
+        )
+
     # Solo el Admin de nivel 1 puede dar de alta a nuevos colaboradores
     if current_user.rol != "Admin":
         raise HTTPException(
@@ -87,7 +103,7 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
         days_valid = data.cert_days_valid if data.cert_days_valid and data.cert_days_valid > 0 else 365
         ca_priv, ca_cert, _, _ = build_root_ca()
         priv_obj, priv_pem, pub_obj, pub_pem = generate_key_pair()
-        user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert, days_valid=days_valid)
+        user_cert_pem = generate_user_certificate(pub_obj, data.nombre, ca_priv, ca_cert, days_valid=days_valid, email=data.email)
         pub_pem_str = pub_pem.decode('utf-8')
         cert_pem_str = user_cert_pem.decode('utf-8')
         private_key_pem_str = priv_pem.decode('utf-8')   # Se entregará al admin, no se almacena en texto plano
@@ -113,12 +129,19 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
         private_key_pem_encrypted=encrypted_priv,
     )
 
+    # Registramos el consentimiento con su timestamp exacto (Derecho ARCO, punto 4)
+    consent_timestamp = datetime.datetime.utcnow()
+    new_identity.consentimiento_alta = True
+    new_identity.fecha_consentimiento_alta = consent_timestamp
+    db.commit()
+    db.refresh(new_identity)
+
     log_audit_event(
         db=db,
         identity_id=new_identity.id,
         actor_id=current_user.id,
         accion="ALTA",
-        detalles=f"Alta exitosa. Rol asignado: {data.rol}"
+        detalles=f"Alta exitosa. Rol asignado: {data.rol}. Consentimiento ARCO otorgado en {consent_timestamp.strftime('%Y-%m-%d %H:%M:%S')} UTC."
     )
 
     # Devolvemos el certificado y la clave privada en claro en esta única respuesta.
@@ -142,6 +165,12 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
 @router.get("/")
 def endpoint_get_all(db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
     # Devuelve la lista completa de identidades registradas.
+    # Aprovecha la consulta para ejecutar la limpieza periódica de efímeros (máx. 1/hora).
+    global _last_expire_check
+    now = _time.time()
+    if now - _last_expire_check > _EXPIRE_CHECK_INTERVAL:
+        _last_expire_check = now
+        expire_stale_identities(db)
     return db.query(Identity).all()
 
 @router.get("/certificates/all")
@@ -321,6 +350,69 @@ def endpoint_download_cert(identity_id: int, db: Session = Depends(get_db), curr
     }
 
 
+# ── V-A. EXPORTAR PKCS#12 (S/MIME) ───────────────────────────────────────────
+
+# ── V-B. FIRMAR CON S/MIME ────────────────────────────────────────────────────
+
+@router.post("/{identity_id}/smime/sign")
+def endpoint_sign_smime(identity_id: int, data: SMimeSignRequest, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
+    """
+    Firma digitalmente el contenido proporcionado usando la clave privada RSA de la identidad.
+    Devuelve el mensaje S/MIME completo (multipart/signed, PKCS#7 detached) listo para enviar.
+
+    Solo el propio titular puede firmar con su identidad; el Admin no puede hacerlo
+    en nombre de otro (la firma representa la autoría del titular).
+    """
+    if current_user.id != identity_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: Solo el titular puede firmar con su propia identidad."
+        )
+
+    target = db.query(Identity).filter(Identity.id == identity_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Identidad no encontrada.")
+
+    if target.estado != "ACTIVO":
+        raise HTTPException(status_code=400, detail="No se puede firmar con una identidad revocada o inactiva.")
+
+    if not target.certificate_pem or not target.private_key_pem_encrypted:
+        raise HTTPException(status_code=400, detail="Esta identidad no tiene certificado o clave privada almacenados.")
+
+    if not data.content or not data.content.strip():
+        raise HTTPException(status_code=400, detail="El contenido a firmar no puede estar vacío.")
+
+    try:
+        private_key_pem = decrypt_private_key(target.private_key_pem_encrypted).decode('utf-8')
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al descifrar la clave privada.")
+
+    try:
+        signed_message = sign_smime(
+            message_str=data.content,
+            cert_pem_str=target.certificate_pem,
+            private_key_pem_str=private_key_pem
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Error al generar la firma S/MIME: " + str(exc))
+
+    log_audit_event(
+        db=db,
+        identity_id=identity_id,
+        actor_id=current_user.id,
+        accion="SMIME_FIRMADO",
+        detalles="Mensaje firmado digitalmente con S/MIME PKCS#7."
+    )
+
+    return {
+        "identity_id": target.id,
+        "nombre": target.nombre,
+        "email": target.email,
+        "signed_message": signed_message,
+        "format": "S/MIME multipart/signed (PKCS#7 detached, SHA-256)"
+    }
+
+
 @router.put("/{identity_id}/renovar-cert")
 def endpoint_renovar_cert(identity_id: int, data: RenovarCertRequest, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
     """
@@ -355,7 +447,7 @@ def endpoint_renovar_cert(identity_id: int, data: RenovarCertRequest, db: Sessio
     # Paso 2: generamos nuevo par de llaves y certificado firmado por la CA
     ca_priv, ca_cert, _, _ = build_root_ca()
     priv_obj, priv_pem, pub_obj, pub_pem = generate_key_pair()
-    new_cert_pem = generate_user_certificate(pub_obj, target.nombre, ca_priv, ca_cert, days_valid=data.days_valid)
+    new_cert_pem = generate_user_certificate(pub_obj, target.nombre, ca_priv, ca_cert, days_valid=data.days_valid, email=target.email)
     new_expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=data.days_valid)
 
     # Paso 3: persistimos el nuevo material criptográfico y reactivamos la identidad
@@ -448,11 +540,19 @@ def endpoint_revocacion(identity_id: int, data: IdentityStatusUpdate, db: Sessio
 # ── III. BAJA ─────────────────────────────────────────────────────────────────
 
 @router.delete("/{identity_id}/baja")
-def endpoint_baja(identity_id: int, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
+def endpoint_baja(identity_id: int, data: BajaRequest, db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
     """
     Elimina físicamente una identidad de la base de datos (hard delete).
     Operación irreversible; solo el Admin puede ejecutarla.
+    Requiere consentimiento explícito de baja conforme al Derecho ARCO (punto 4).
     """
+    # El consentimiento explícito de salida es obligatorio (Derecho ARCO, punto 4)
+    if not data.consentimiento_baja:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Se requiere consentimiento explícito del titular para eliminar sus datos (Derecho ARCO)."
+        )
+
     if current_user.rol != "Admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado: Solo los administradores de nivel 1 pueden dar de baja a un colaborador.")
 
@@ -463,14 +563,19 @@ def endpoint_baja(identity_id: int, db: Session = Depends(get_db), current_user:
     check_hierarchy(current_user, target.rol)
 
     nombre_target = target.nombre
+    consent_timestamp = datetime.datetime.utcnow()
     delete_identity(db, identity_id, hard_delete=True)
 
+    # El log persiste aunque la identidad se elimine (identity_id nullable en AuditLog)
     log_audit_event(
         db=db,
         identity_id=identity_id,
         actor_id=current_user.id,
         accion="BAJA",
-        detalles=f"El empleado {nombre_target} ha sido purgado y borrado físicamente de la Base de Datos."
+        detalles=(
+            f"El colaborador {nombre_target} ha sido eliminado físicamente de la Base de Datos. "
+            f"Consentimiento de baja ARCO registrado en {consent_timestamp.strftime('%Y-%m-%d %H:%M:%S')} UTC."
+        )
     )
 
     return {"message": f"Usuario {nombre_target} ha sido eliminado definitivamente de la DB."}

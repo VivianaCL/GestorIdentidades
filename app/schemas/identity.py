@@ -14,6 +14,7 @@ class IdentityCreate(BaseModel):
     password: str
     rol: str
     cert_days_valid: Optional[float] = 365  # Días de vigencia del certificado; acepta fracciones para horas
+    consentimiento_alta: bool  # Consentimiento explícito del titular requerido por el Derecho ARCO
 
 
 class IdentityStatusUpdate(BaseModel):
@@ -72,3 +73,27 @@ class MFADisable(BaseModel):
 class MFAStatusResponse(BaseModel):
     # Indica si el usuario autenticado tiene MFA habilitado.
     mfa_enabled: bool
+
+
+# ── Schemas ARCO ──────────────────────────────────────────────────────────────
+
+class BajaRequest(BaseModel):
+    # Payload para dar de baja una identidad (endpoint DELETE /baja).
+    # El consentimiento explícito es obligatorio conforme al Derecho ARCO.
+    consentimiento_baja: bool  # Debe ser True; False rechaza la operación
+
+
+# ── Schemas S/MIME ─────────────────────────────────────────────────────────────
+
+class SMimeSignRequest(BaseModel):
+    # Contenido del correo a firmar digitalmente.
+    content: str
+
+# ── Schemas autenticación por clave criptográfica ───────────────────────────
+
+class KeyLoginRequest(BaseModel):
+    # Respuesta al desafío: email del usuario, ID del desafío emitido por el
+    # servidor y firma RSA-PSS SHA-256 del challenge en base64.
+    email: str
+    challenge_id: str
+    signature_b64: str

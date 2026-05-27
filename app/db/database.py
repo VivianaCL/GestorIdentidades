@@ -1,18 +1,39 @@
 # Capa de acceso a datos.
-# Configura la conexión a SQLite y expone funciones reutilizables para las
-# operaciones CRUD más frecuentes del sistema (alta, revocación, baja, auditoría).
+# Soporta dos motores según la variable DB_ENGINE del entorno:
+#   sqlite  → archivo local identities.db  (desarrollo)
+#   mysql   → servidor MySQL/MariaDB        (producción en HostGator)
 
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-# Base de datos SQLite local; en producción reemplazar por la URL del servidor real
-SQLALCHEMY_DATABASE_URL = "sqlite:///./identities.db"
+load_dotenv()
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}  # Necesario para SQLite en entornos multi-hilo
-)
+DB_ENGINE = os.environ.get("DB_ENGINE", "sqlite").lower()
+
+if DB_ENGINE == "mysql":
+    DB_USER     = os.environ["DB_USER"]
+    DB_PASSWORD = os.environ["DB_PASSWORD"]
+    DB_HOST     = os.environ.get("DB_HOST", "localhost")
+    DB_PORT     = os.environ.get("DB_PORT", "3306")
+    DB_NAME     = os.environ["DB_NAME"]
+
+    SQLALCHEMY_DATABASE_URL = (
+        "mysql+pymysql://{user}:{pw}@{host}:{port}/{name}?charset=utf8mb4".format(
+            user=DB_USER, pw=DB_PASSWORD, host=DB_HOST, port=DB_PORT, name=DB_NAME
+        )
+    )
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
+
+else:
+    # SQLite: no requiere credenciales, crea el archivo automáticamente
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./identities.db"
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
 
 # Fábrica de sesiones: cada petición HTTP abre y cierra su propia sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -99,6 +120,39 @@ def log_audit_event(db, identity_id: int, actor_id: int, accion: str, detalles: 
     db.commit()
     db.refresh(log)
     return log
+
+
+def expire_stale_identities(db):
+    """Marca como BAJA a usuarios efímeros (External/Operative) cuyo cert_expires_at
+    ya venció. Admin y Coordinator no se tocan — ellos renuevan manualmente.
+    Devuelve el número de identidades expiradas en esta ejecución."""
+    import datetime
+    from app.models.identity import Identity, AuditLog
+
+    now = datetime.datetime.utcnow()
+    expired = db.query(Identity).filter(
+        Identity.estado == "ACTIVO",
+        Identity.rol.in_(["External", "Operative"]),
+        Identity.cert_expires_at != None,
+        Identity.cert_expires_at < now,
+    ).all()
+
+    for u in expired:
+        u.estado = "BAJA"
+        log = AuditLog(
+            identity_id=u.id,
+            actor_id=None,
+            accion="BAJA_AUTOMATICA",
+            detalles="Certificado/cuenta vencido en {}. Baja automática por expiración.".format(
+                u.cert_expires_at.strftime("%Y-%m-%d %H:%M UTC")
+            ),
+        )
+        db.add(log)
+
+    if expired:
+        db.commit()
+
+    return len(expired)
 
 
 def get_audit_logs(db, identity_id: int = None):

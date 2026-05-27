@@ -360,6 +360,28 @@
       display: block;
     }
 
+    .login-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 18px 0 14px;
+      color: var(--muted); font-size: 12px;
+    }
+    .login-divider::before, .login-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .btn-link {
+      background: none; border: none; color: var(--accent);
+      font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline;
+      width: 100%; text-align: center; margin-top: 4px;
+    }
+    .key-login-step { display: none; }
+    .key-login-step.active { display: block; }
+    .challenge-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px;
+      font-family: monospace; font-size: 11px; color: var(--muted);
+      word-break: break-all; margin-bottom: 12px;
+    }
+
     /* ── Dashboard ───────────────────────────────────────────────────── */
     #app {
       display: none;
@@ -1053,6 +1075,41 @@
       </div>
 
       <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+
+      <div class="login-divider">o</div>
+      <button class="btn-link" onclick="toggleKeyLogin()">Usar clave criptográfica</button>
+    </div>
+
+    <!-- ── Panel login por clave criptográfica ── -->
+    <div class="login-card" id="key-login-card" style="display:none; margin-top:16px;">
+      <h2 style="margin-bottom:6px;">Clave criptográfica</h2>
+      <p class="subtitle">Solo para Administradores y Coordinadores con certificado activo</p>
+
+      <div id="key-login-error" class="login-error"></div>
+
+      <!-- Paso 1: solicitar desafío -->
+      <div class="key-login-step active" id="kl-step1">
+        <div class="form-group">
+          <label>Correo electrónico</label>
+          <input type="email" id="kl-email" placeholder="usuario@casamonarca.com" autocomplete="email" />
+        </div>
+        <button class="btn-primary" onclick="klRequestChallenge()">Solicitar desafío</button>
+      </div>
+
+      <!-- Paso 2: firmar y autenticar -->
+      <div class="key-login-step" id="kl-step2">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">
+          Desafío recibido. Selecciona tu archivo de clave privada (<code>.pem</code>) para firmarlo.
+        </p>
+        <div class="challenge-box" id="kl-challenge-preview"></div>
+        <div class="form-group">
+          <label>Clave privada (.pem)</label>
+          <input type="file" id="kl-pem-file" accept=".pem,text/plain"
+            style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);width:100%;box-sizing:border-box;" />
+        </div>
+        <button class="btn-primary" onclick="klAuthenticate()">Autenticar</button>
+        <button class="btn-link" style="margin-top:10px;" onclick="klReset()">← Volver</button>
+      </div>
     </div>
   </div>
 
@@ -1127,6 +1184,15 @@
           <div class="nav-section-label">Administración</div>
           <div class="nav-item" onclick="showPage('audit')" id="nav-audit">
             <span class="icon">📋</span> Auditoría
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Comunicación</div>
+          <div class="nav-item" onclick="showPage('messages')" id="nav-messages">
+            <span class="icon">✉</span> Correos
+            <span id="inbox-badge" style="display:none;margin-left:auto;background:var(--danger);
+              color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:2px 7px">0</span>
           </div>
         </div>
 
@@ -1274,6 +1340,60 @@
         </div>
 
         <!-- ── Seguridad MFA ─────────────────────────────────────────────── -->
+        <!-- ── PÁGINA CORREOS ──────────────────────────────────────────── -->
+        <div class="page" id="page-messages">
+          <div class="page-header">
+            <div>
+              <h1>Correos</h1>
+              <p>Mensajería interna firmada digitalmente</p>
+            </div>
+            <button class="btn-primary" onclick="openComposeModal()">+ Redactar</button>
+          </div>
+
+          <!-- Pestañas Recibidos / Enviados -->
+          <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px">
+            <button id="tab-inbox" onclick="switchMailTab('inbox')"
+              style="background:none;border:none;color:var(--accent);padding:9px 18px;
+                     font-size:13px;font-weight:600;border-bottom:2px solid var(--accent);cursor:pointer">
+              Recibidos
+            </button>
+            <button id="tab-sent" onclick="switchMailTab('sent')"
+              style="background:none;border:none;color:var(--muted);padding:9px 18px;
+                     font-size:13px;cursor:pointer;border-bottom:2px solid transparent">
+              Enviados
+            </button>
+          </div>
+
+          <!-- Lista de mensajes -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div id="messages-list" style="min-height:200px"></div>
+          </div>
+
+          <!-- Detalle de mensaje -->
+          <div id="message-detail-wrap" style="display:none;margin-top:20px">
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+                <div>
+                  <div id="msg-detail-subject" style="font-size:18px;font-weight:600;margin-bottom:6px"></div>
+                  <div id="msg-detail-meta" style="font-size:12px;color:var(--muted)"></div>
+                </div>
+                <div style="display:flex;gap:8px;flex-shrink:0">
+                  <button id="btn-verify-sig" class="btn-sm btn-accent" onclick="verifySignature()"
+                    style="display:none">Verificar firma</button>
+                  <button class="btn-sm btn-ghost" onclick="closeMessageDetail()">Cerrar</button>
+                </div>
+              </div>
+              <div id="msg-detail-body"
+                style="background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                       padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;
+                       word-break:break-word;min-height:80px"></div>
+              <!-- Resultado de verificación -->
+              <div id="msg-verify-result" style="display:none;margin-top:16px;padding:14px 18px;
+                border-radius:8px;font-size:13px"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="page" id="page-mfa-settings">
           <div class="page-header">
             <div>
@@ -1331,6 +1451,21 @@
                 </div>
                 <div id="mfa-disable-error" class="login-error" style="margin-top:10px;"></div>
               </div>
+            </div>
+          </div>
+
+          <!-- ── Clave privada para login criptográfico ── -->
+          <div class="card" style="max-width:520px;margin-top:20px;" id="card-privkey-download">
+            <div class="card-header">
+              <h3>Clave criptográfica</h3>
+            </div>
+            <div style="padding:0 20px 20px;">
+              <p style="color:var(--muted);font-size:13px;margin-bottom:16px;">
+                Descarga tu clave privada en formato PEM para poder iniciar sesión
+                presentando la clave en lugar de tu contraseña. Guárdala en un lugar seguro —
+                quien tenga el archivo puede autenticarse como tú.
+              </p>
+              <button class="btn-save" onclick="downloadPrivateKey()">Descargar clave privada (.pem)</button>
             </div>
           </div>
         </div>
@@ -1570,6 +1705,106 @@
     </div>
   </div>
 
+  <!-- Modal: Redactar mensaje -->
+  <div class="modal-overlay" id="modal-compose">
+    <div class="modal" style="max-width:580px">
+      <h2>Redactar mensaje</h2>
+
+      <!-- Selector tipo destinatario -->
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <button id="compose-tab-internal" onclick="switchComposeTab('internal')"
+          style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--accent);
+                 background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          Usuario del sistema
+        </button>
+        <button id="compose-tab-external" onclick="switchComposeTab('external')"
+          style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);
+                 background:transparent;color:var(--muted);font-size:13px;cursor:pointer">
+          Correo externo
+        </button>
+      </div>
+
+      <!-- Destinatario interno -->
+      <div id="compose-internal-fields">
+        <div class="form-group">
+          <label>Destinatario</label>
+          <select id="compose-recipient-id"
+            style="width:100%;background:var(--bg);border:1.5px solid var(--border);
+                   border-radius:8px;padding:10px;color:var(--text);font-size:13px;outline:none">
+            <option value="">Selecciona un colaborador...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Destinatario externo -->
+      <div id="compose-external-fields" style="display:none">
+        <div class="form-group">
+          <label>Email del destinatario externo</label>
+          <input type="email" id="compose-ext-email" placeholder="ejemplo@dominio.com"/>
+        </div>
+        <div id="compose-ext-link-wrap" style="display:none;margin-bottom:12px;
+          padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
+            Modo desarrollo — enlace de acceso (copia y abre en el navegador):
+          </div>
+          <div id="compose-ext-link" style="font-size:12px;color:var(--accent);word-break:break-all"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Asunto</label>
+        <input type="text" id="compose-subject" placeholder="Asunto del mensaje"/>
+      </div>
+      <div class="form-group">
+        <label>Mensaje</label>
+        <textarea id="compose-body" rows="6" placeholder="Escribe tu mensaje..."
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+                 padding:10px;color:var(--text);font-family:var(--font-body);font-size:13px;
+                 resize:vertical;outline:none"></textarea>
+      </div>
+      <div id="compose-error" class="login-error" style="margin-top:8px;"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeComposeModal()">Cancelar</button>
+        <button class="btn-save" id="btn-send-msg" onclick="sendMessage()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Firmar mensaje con S/MIME -->
+  <div class="modal-overlay" id="modal-smime-sign">
+    <div class="modal" style="max-width:600px">
+      <h2>Firmar mensaje S/MIME</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+        Firma digitalmente el contenido con tu clave privada RSA. El resultado es un mensaje
+        <code style="color:var(--accent)">multipart/signed</code> listo para enviar por correo.
+      </p>
+      <div class="form-group">
+        <label>Contenido del mensaje</label>
+        <textarea id="smime-content" rows="5" placeholder="Escribe el contenido del correo a firmar..."
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+                 padding:10px;color:var(--text);font-family:var(--font-body);font-size:13px;resize:vertical;outline:none"></textarea>
+      </div>
+      <div id="smime-result-wrap" style="display:none;margin-top:16px">
+        <label style="display:block;margin-bottom:6px;font-size:12px;color:var(--muted)">
+          Mensaje firmado (S/MIME multipart/signed)
+        </label>
+        <textarea id="smime-result" rows="9" readonly
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+                 padding:10px;color:var(--accent);font-family:monospace;font-size:11px;resize:vertical;outline:none"></textarea>
+        <button onclick="copySMimeResult()"
+          style="margin-top:8px;background:transparent;border:1px solid var(--border);color:var(--muted);
+                 border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer">
+          Copiar al portapapeles
+        </button>
+      </div>
+      <div id="smime-sign-error" class="login-error" style="margin-top:8px;"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeSMimeSignModal()">Cancelar</button>
+        <button class="btn-save" id="btn-smime-sign" onclick="signSMime()">Firmar mensaje</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div id="toast"></div>
 
@@ -1716,6 +1951,15 @@
         document.getElementById("nav-certs").style.display = "none";
       }
 
+      // El botón de clave privada solo aplica a Admin y Coordinator
+      const privKeyCard = document.getElementById("card-privkey-download");
+      if (privKeyCard) {
+        privKeyCard.style.display = (u.rol === "Admin" || u.rol === "Coordinator") ? "block" : "none";
+      }
+
+      // Cargar badge de mensajes no leídos al iniciar sesión
+      updateInboxBadge();
+
       document.getElementById("login-pass").addEventListener("keydown", e => {
         if (e.key === "Enter") doLogin();
       });
@@ -1737,6 +1981,7 @@
       if (name === "dashboard") loadDashboard();
       if (name === "mfa-settings") loadMFAStatus();
       if (name === "theme-settings") initThemePage();
+      if (name === "messages") loadMessages();
     }
 
     async function loadDashboard() {
@@ -1927,6 +2172,7 @@
         cert_days_valid: (rol === "Admin" || rol === "Coordinator")
           ? certAmountToDays()
           : 365,
+        consentimiento_alta: true,  // El formulario representa el consentimiento explícito ARCO
       };
 
       if (!payload.nombre || !payload.password || !payload.email || !payload.rol) {
@@ -1941,7 +2187,11 @@
         showToast(`Colaborador "${payload.email}" dado de alta correctamente`, "success");
         loadUsers();
       } else {
-        errEl.textContent = data.detail || "Error al crear usuario.";
+        // data.detail puede ser string (error simple) o array (errores de validación Pydantic)
+        const detail = data.detail;
+        errEl.textContent = Array.isArray(detail)
+          ? detail.map(function(e) { return e.msg; }).join(", ")
+          : (detail || "Error al crear usuario.");
         errEl.classList.add("visible");
       }
     }
@@ -2005,11 +2255,17 @@
         const canExtend = currentUserLevel < targetLevel && c.estado === "ACTIVO";
         const canRevalidate = currentUserLevel === 1 && c.estado === "REVOCADO"; // Solo Admin
 
+        // S/MIME: solo el propio titular puede firmar con su identidad
+        const canSign = c.estado === "ACTIVO" && c.id === State.user.id;
+
         const extendBtn = canExtend
           ? `<button class="btn-sm btn-accent" onclick="openExtendModal(${c.id})">Extender</button>`
           : '';
         const revalidateBtn = canRevalidate
           ? `<button class="btn-sm btn-success" onclick="revalidateCert(${c.id})">Revalidar</button>`
+          : '';
+        const signBtn = canSign
+          ? `<button class="btn-sm btn-accent" onclick="openSMimeSignModal(${c.id})" title="Firmar mensaje con tu clave RSA">Firmar S/MIME</button>`
           : '';
 
         return `
@@ -2025,6 +2281,7 @@
             <button class="btn-sm btn-ghost" onclick="downloadCert(${c.id})">Descargar</button>
             ${extendBtn}
             ${revalidateBtn}
+            ${signBtn}
           </div>
         </td>
       </tr>`;
@@ -2247,6 +2504,157 @@
         });
       });
     });
+
+    // ── Login por clave criptográfica (challenge-response) ──────────────────
+
+    let _klChallengeId = null;
+    let _klChallengeB64 = null;
+
+    function toggleKeyLogin() {
+      const card = document.getElementById("key-login-card");
+      card.style.display = card.style.display === "none" ? "block" : "none";
+      if (card.style.display === "block") {
+        // Pre-rellenar el email desde el campo de login normal
+        const emailVal = document.getElementById("login-user").value.trim();
+        if (emailVal) document.getElementById("kl-email").value = emailVal;
+      }
+    }
+
+    async function klRequestChallenge() {
+      const email = document.getElementById("kl-email").value.trim().toLowerCase();
+      const errEl = document.getElementById("key-login-error");
+      errEl.classList.remove("visible");
+      if (!email) {
+        errEl.textContent = "Ingresa tu correo electrónico.";
+        errEl.classList.add("visible");
+        return;
+      }
+      const res = await fetch(API + "/api/v1/auth/challenge?email=" + encodeURIComponent(email));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        errEl.textContent = data.detail || "Error al solicitar el desafío.";
+        errEl.classList.add("visible");
+        return;
+      }
+      _klChallengeId = data.challenge_id;
+      _klChallengeB64 = data.challenge_b64;
+      // Mostrar vista previa del desafío (primeros 32 caracteres)
+      document.getElementById("kl-challenge-preview").textContent =
+        "Challenge: " + data.challenge_b64.substring(0, 32) + "…  (expira en " + data.expires_in + "s)";
+      document.getElementById("kl-step1").classList.remove("active");
+      document.getElementById("kl-step2").classList.add("active");
+    }
+
+    function klReset() {
+      _klChallengeId = null;
+      _klChallengeB64 = null;
+      document.getElementById("kl-step2").classList.remove("active");
+      document.getElementById("kl-step1").classList.add("active");
+      document.getElementById("key-login-error").classList.remove("visible");
+      document.getElementById("kl-pem-file").value = "";
+    }
+
+    function _pemToDer(pem) {
+      // Extrae los bytes DER de un PEM, eliminando cabeceras y espacios
+      const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+      const bin = atob(b64);
+      return Uint8Array.from(bin, c => c.charCodeAt(0));
+    }
+
+    async function klAuthenticate() {
+      const errEl = document.getElementById("key-login-error");
+      errEl.classList.remove("visible");
+      const email = document.getElementById("kl-email").value.trim().toLowerCase();
+      const fileInput = document.getElementById("kl-pem-file");
+      if (!fileInput.files.length) {
+        errEl.textContent = "Selecciona tu archivo de clave privada (.pem).";
+        errEl.classList.add("visible");
+        return;
+      }
+      if (!_klChallengeId || !_klChallengeB64) {
+        errEl.textContent = "No hay desafío activo. Solicita uno nuevo.";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      let pemText;
+      try {
+        pemText = await fileInput.files[0].text();
+      } catch (e) {
+        errEl.textContent = "No se pudo leer el archivo.";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      let signature_b64;
+      try {
+        const der = _pemToDer(pemText);
+        const privKey = await crypto.subtle.importKey(
+          "pkcs8", der,
+          { name: "RSA-PSS", hash: "SHA-256" },
+          false,
+          ["sign"]
+        );
+        const challengeBytes = Uint8Array.from(atob(_klChallengeB64), c => c.charCodeAt(0));
+        const sigBuf = await crypto.subtle.sign(
+          { name: "RSA-PSS", saltLength: 32 },
+          privKey,
+          challengeBytes
+        );
+        // Convertir sin spread operator para evitar límites de stack en firmas grandes
+        const sigBytes = new Uint8Array(sigBuf);
+        let sigBin = "";
+        for (let i = 0; i < sigBytes.length; i++) sigBin += String.fromCharCode(sigBytes[i]);
+        signature_b64 = btoa(sigBin);
+      } catch (e) {
+        errEl.textContent = "Error al firmar. Verifica que el archivo es una clave privada PKCS8 válida (.pem).";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      const res = await fetch(API + "/api/v1/auth/key-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, challenge_id: _klChallengeId, signature_b64 })
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        errEl.textContent = data.detail || "Autenticación fallida.";
+        errEl.classList.add("visible");
+        klReset();
+        return;
+      }
+
+      // Éxito: misma lógica que el login normal
+      State.token = data.access_token;
+      const base64Url = State.token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jwtPayload = JSON.parse(decodeURIComponent(escape(window.atob(base64))));
+      State.user = { email: jwtPayload.sub, rol: jwtPayload.rol };
+      localStorage.setItem("sgi_token", data.access_token);
+      localStorage.setItem("sgi_user", JSON.stringify(State.user));
+      klReset();
+      initApp();
+    }
+
+    async function downloadPrivateKey() {
+      const res = await fetch(API + "/api/v1/auth/my-private-key", {
+        headers: { Authorization: "Bearer " + State.token }
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.detail || "No se pudo descargar la clave privada.");
+        return;
+      }
+      const pem = await res.text();
+      const blob = new Blob([pem], { type: "application/x-pem-file" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = State.user.email.replace("@", "_at_") + "_private_key.pem";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
 
     // ── MFA: configuración desde el panel ───────────────────────────────────
 
@@ -2475,6 +2883,328 @@
       syncPickersFromDOM();
       renderPresetGrid();
     }
+
+    // ── CORREOS ───────────────────────────────────────────────────────────────
+
+    let mailTab = "inbox";          // "inbox" | "sent"
+    let composeTab = "internal";    // "internal" | "external"
+    let openMessageId = null;       // ID del mensaje abierto en detalle
+
+    // ── Carga y renderizado ───────────────────────────────────────────────────
+
+    async function loadMessages() {
+      const list = document.getElementById("messages-list");
+      list.innerHTML = '<div style="padding:24px;text-align:center"><span class="spinner"></span></div>';
+      closeMessageDetail();
+
+      const path = mailTab === "inbox" ? "/api/v1/messages/inbox" : "/api/v1/messages/sent";
+      const { ok, data } = await api(path);
+
+      if (!ok || !Array.isArray(data) || data.length === 0) {
+        list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">No hay mensajes.</div>';
+        updateInboxBadge();
+        return;
+      }
+
+      list.innerHTML = data.map(function(m) {
+        const unread = mailTab === "inbox" && !m.leido;
+        const fecha = m.fecha_envio ? m.fecha_envio.replace("T", " ").slice(0, 16) : "—";
+        const firmaBadge = m.tiene_firma
+          ? '<span style="font-size:10px;background:#4fb87a22;color:#4fb87a;border:1px solid #4fb87a44;border-radius:6px;padding:2px 7px;margin-left:8px">Firmado</span>'
+          : '';
+        const who = mailTab === "inbox"
+          ? (m.sender_nombre || m.sender_email || "Desconocido")
+          : (m.recipient_email_ext || "Usuario #" + m.recipient_id);
+        const label = mailTab === "inbox" ? "De" : "Para";
+
+        return '<div onclick="openMessage(' + m.id + ', ' + m.tiene_firma + ')" style="padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" '
+          + 'onmouseover="this.style.background=\'var(--border)\'" onmouseout="this.style.background=\'none\'">'
+          + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">'
+          + '<span style="font-size:13px;font-weight:' + (unread ? '700' : '400') + ';color:' + (unread ? 'var(--text)' : 'var(--muted)') + '">'
+          + label + ': ' + who + firmaBadge + '</span>'
+          + '<span style="font-size:11px;color:var(--muted)">' + fecha + '</span>'
+          + '</div>'
+          + '<div style="font-size:14px;font-weight:' + (unread ? '600' : '400') + '">' + m.subject + '</div>'
+          + '</div>';
+      }).join("");
+
+      updateInboxBadge();
+    }
+
+    function updateInboxBadge() {
+      // Actualiza el badge de no leídos en la barra lateral
+      api("/api/v1/messages/inbox").then(function(res) {
+        if (!res.ok || !Array.isArray(res.data)) return;
+        const unread = res.data.filter(function(m) { return !m.leido; }).length;
+        const badge = document.getElementById("inbox-badge");
+        if (unread > 0) {
+          badge.textContent = unread;
+          badge.style.display = "inline";
+        } else {
+          badge.style.display = "none";
+        }
+      });
+    }
+
+    function switchMailTab(tab) {
+      mailTab = tab;
+      document.getElementById("tab-inbox").style.color      = tab === "inbox" ? "var(--accent)" : "var(--muted)";
+      document.getElementById("tab-inbox").style.borderBottomColor  = tab === "inbox" ? "var(--accent)" : "transparent";
+      document.getElementById("tab-inbox").style.fontWeight  = tab === "inbox" ? "600" : "400";
+      document.getElementById("tab-sent").style.color       = tab === "sent" ? "var(--accent)" : "var(--muted)";
+      document.getElementById("tab-sent").style.borderBottomColor   = tab === "sent" ? "var(--accent)" : "transparent";
+      document.getElementById("tab-sent").style.fontWeight   = tab === "sent" ? "600" : "400";
+      loadMessages();
+    }
+
+    // ── Detalle de mensaje ────────────────────────────────────────────────────
+
+    async function openMessage(id, tieneFirma) {
+      openMessageId = id;
+      // Buscar el mensaje en el DOM actual para sus datos
+      const path = mailTab === "inbox" ? "/api/v1/messages/inbox" : "/api/v1/messages/sent";
+      const { ok, data } = await api(path);
+      if (!ok) return;
+      const msg = data.find(function(m) { return m.id === id; });
+      if (!msg) return;
+
+      document.getElementById("msg-detail-subject").textContent = msg.subject;
+      const who = mailTab === "inbox"
+        ? "De: " + (msg.sender_nombre || msg.sender_email)
+        : "Para: " + (msg.recipient_email_ext || "Usuario #" + msg.recipient_id);
+      const fecha = msg.fecha_envio ? msg.fecha_envio.replace("T", " ").slice(0, 16) + " UTC" : "";
+      document.getElementById("msg-detail-meta").textContent = who + "  ·  " + fecha;
+      document.getElementById("msg-detail-body").textContent = msg.body;
+      document.getElementById("msg-verify-result").style.display = "none";
+
+      // Mostrar botón verificar solo en recibidos con firma
+      const btnVerify = document.getElementById("btn-verify-sig");
+      btnVerify.style.display = (mailTab === "inbox" && tieneFirma) ? "inline-flex" : "none";
+
+      document.getElementById("message-detail-wrap").style.display = "block";
+
+      // Marcar como leído si es de la bandeja de entrada
+      if (mailTab === "inbox" && !msg.leido) {
+        await api("/api/v1/messages/" + id + "/read", "PUT");
+        updateInboxBadge();
+        loadMessages();
+      }
+    }
+
+    function closeMessageDetail() {
+      document.getElementById("message-detail-wrap").style.display = "none";
+      openMessageId = null;
+    }
+
+    async function verifySignature() {
+      if (!openMessageId) return;
+      const btn = document.getElementById("btn-verify-sig");
+      btn.disabled = true;
+      btn.textContent = "Verificando...";
+
+      const { ok, data } = await api("/api/v1/messages/" + openMessageId + "/verify");
+      const result = document.getElementById("msg-verify-result");
+      result.style.display = "block";
+
+      if (ok) {
+        result.style.background = data.valido ? "#4fb87a11" : "#d94f4f11";
+        result.style.border     = "1px solid " + (data.valido ? "#4fb87a44" : "#d94f4f44");
+        result.style.borderRadius = "8px";
+        result.style.padding = "14px 18px";
+        result.style.color = data.valido ? "var(--success)" : "var(--danger)";
+        result.innerHTML = "<strong>" + (data.valido ? "✔ Firma válida" : "✖ Firma inválida") + "</strong>"
+          + "<br><span style='color:var(--muted);font-size:12px'>" + data.detalle + "</span>";
+      } else {
+        result.style.background = "#d94f4f11";
+        result.style.border = "1px solid #d94f4f44";
+        result.style.color = "var(--danger)";
+        result.textContent = data.detail || "Error al verificar la firma.";
+      }
+
+      btn.disabled = false;
+      btn.textContent = "Verificar firma";
+    }
+
+    // ── Redactar ──────────────────────────────────────────────────────────────
+
+    async function openComposeModal() {
+      document.getElementById("compose-subject").value = "";
+      document.getElementById("compose-body").value = "";
+      document.getElementById("compose-ext-email").value = "";
+      document.getElementById("compose-error").classList.remove("visible");
+      document.getElementById("compose-ext-link-wrap").style.display = "none";
+      document.getElementById("btn-send-msg").style.display = "";
+      switchComposeTab("internal");
+
+      // Cargar usuarios si aún no están en memoria (el usuario puede no haber visitado Colaboradores)
+      if (!State.users || State.users.length === 0) {
+        const { ok, data } = await api("/api/v1/identities/");
+        if (ok && Array.isArray(data)) State.users = data;
+      }
+
+      // Poblar el select de destinatarios internos.
+      // Compara por email porque State.user solo tiene email y rol (no id).
+      const sel = document.getElementById("compose-recipient-id");
+      sel.innerHTML = '<option value="">Selecciona un colaborador...</option>';
+      State.users.forEach(function(u) {
+        if (u.email !== State.user.email && u.estado === "ACTIVO") {
+          const opt = document.createElement("option");
+          opt.value = u.id;
+          opt.textContent = u.nombre + " (" + u.email + ")";
+          sel.appendChild(opt);
+        }
+      });
+
+      document.getElementById("modal-compose").classList.add("open");
+    }
+
+    function closeComposeModal() {
+      document.getElementById("modal-compose").classList.remove("open");
+    }
+
+    function switchComposeTab(tab) {
+      composeTab = tab;
+      const intFields = document.getElementById("compose-internal-fields");
+      const extFields = document.getElementById("compose-external-fields");
+      const btnInt    = document.getElementById("compose-tab-internal");
+      const btnExt    = document.getElementById("compose-tab-external");
+
+      intFields.style.display = tab === "internal" ? "block" : "none";
+      extFields.style.display = tab === "external" ? "block" : "none";
+
+      btnInt.style.background   = tab === "internal" ? "var(--accent)" : "transparent";
+      btnInt.style.color        = tab === "internal" ? "#fff" : "var(--muted)";
+      btnInt.style.borderColor  = tab === "internal" ? "var(--accent)" : "var(--border)";
+      btnExt.style.background   = tab === "external" ? "var(--accent)" : "transparent";
+      btnExt.style.color        = tab === "external" ? "#fff" : "var(--muted)";
+      btnExt.style.borderColor  = tab === "external" ? "var(--accent)" : "var(--border)";
+    }
+
+    async function sendMessage() {
+      const errEl  = document.getElementById("compose-error");
+      const btn    = document.getElementById("btn-send-msg");
+      const subject = document.getElementById("compose-subject").value.trim();
+      const body    = document.getElementById("compose-body").value.trim();
+      errEl.classList.remove("visible");
+
+      if (!subject || !body) {
+        errEl.textContent = "El asunto y el mensaje son obligatorios.";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
+
+      try {
+        if (composeTab === "internal") {
+          const recipientId = parseInt(document.getElementById("compose-recipient-id").value);
+          if (!recipientId) {
+            errEl.textContent = "Selecciona un destinatario.";
+            errEl.classList.add("visible");
+            return;
+          }
+          const { ok, data } = await api("/api/v1/messages/send/internal", "POST", {
+            recipient_id: recipientId, subject, body
+          });
+          if (ok) {
+            closeComposeModal();
+            showToast("Mensaje enviado" + (data.firmado ? " y firmado digitalmente." : "."));
+            if (mailTab === "sent") loadMessages();
+          } else {
+            errEl.textContent = data.detail || "Error al enviar.";
+            errEl.classList.add("visible");
+          }
+
+        } else {
+          const extEmail = document.getElementById("compose-ext-email").value.trim();
+          if (!extEmail) {
+            errEl.textContent = "Introduce el email del destinatario externo.";
+            errEl.classList.add("visible");
+            return;
+          }
+          const { ok, data } = await api("/api/v1/messages/send/external", "POST", {
+            recipient_email: extEmail, subject, body
+          });
+          if (ok) {
+            if (!data.email_enviado && data.enlace_acceso) {
+              // Modo desarrollo: mostrar el enlace en pantalla
+              document.getElementById("compose-ext-link").textContent = data.enlace_acceso;
+              document.getElementById("compose-ext-link-wrap").style.display = "block";
+              document.getElementById("btn-send-msg").style.display = "none";
+              showToast("Modo desarrollo: enlace generado. Cópialo para probarlo.");
+            } else {
+              closeComposeModal();
+              showToast("Email enviado a " + extEmail + ".");
+            }
+          } else {
+            errEl.textContent = data.detail || "Error al enviar.";
+            errEl.classList.add("visible");
+          }
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Enviar";
+      }
+    }
+
+    // ── S/MIME ────────────────────────────────────────────────────────────────
+
+    let smimeTargetId = null;
+
+    function openSMimeSignModal(id) {
+      smimeTargetId = id;
+      document.getElementById("smime-content").value = "";
+      document.getElementById("smime-result").value = "";
+      document.getElementById("smime-result-wrap").style.display = "none";
+      document.getElementById("smime-sign-error").classList.remove("visible");
+      document.getElementById("modal-smime-sign").classList.add("open");
+    }
+
+    function closeSMimeSignModal() {
+      document.getElementById("modal-smime-sign").classList.remove("open");
+      smimeTargetId = null;
+    }
+
+    async function signSMime() {
+      const content = document.getElementById("smime-content").value.trim();
+      const errEl   = document.getElementById("smime-sign-error");
+      errEl.classList.remove("visible");
+
+      if (!content) {
+        errEl.textContent = "El contenido no puede estar vacío.";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      const btn = document.getElementById("btn-smime-sign");
+      btn.disabled = true;
+      btn.textContent = "Firmando...";
+
+      try {
+        const { ok, data } = await api(`/api/v1/identities/${smimeTargetId}/smime/sign`, "POST", { content });
+        if (!ok) {
+          errEl.textContent = data.detail || "Error al firmar el mensaje.";
+          errEl.classList.add("visible");
+          return;
+        }
+        document.getElementById("smime-result").value = data.signed_message;
+        document.getElementById("smime-result-wrap").style.display = "block";
+        showToast("Mensaje firmado correctamente.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Firmar mensaje";
+      }
+    }
+
+    function copySMimeResult() {
+      const el = document.getElementById("smime-result");
+      el.select();
+      document.execCommand("copy");
+      showToast("Copiado al portapapeles.");
+    }
+
+    // ── Fin S/MIME ────────────────────────────────────────────────────────────
 
     // Al cargar la página no hay usuario aún; se aplica el default hasta que inicie sesión
     applyThemeToDOM(PRESETS.default);
