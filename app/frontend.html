@@ -2105,7 +2105,7 @@
 
     async function deleteUser(id) {
       if (!confirm(`¿Dar de BAJA DEFINITIVA al ID "${id}"? Esta acción borrará el registro.`)) return;
-      const { ok, data } = await api(`/api/v1/identities/${id}/baja`, "DELETE");
+      const { ok, data } = await api(`/api/v1/identities/${id}/baja`, "DELETE", { consentimiento_baja: true });
       if (ok) { showToast(data.message, "success"); loadUsers(); }
       else showToast(data.detail || "Error", "error");
     }

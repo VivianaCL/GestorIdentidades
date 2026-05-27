@@ -61,7 +61,7 @@ def check_hierarchy(actor: Identity, target_role: str):
     actor_level = ROLE_LEVELS.get(actor.rol, 99)
     target_level = ROLE_LEVELS.get(target_role, 99)
 
-    if actor_level > target_level:
+    if actor_level >= target_level:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Acceso denegado: Un perfil '{actor.rol}' no puede realizar la acción sobre nivel '{target_role}'."
