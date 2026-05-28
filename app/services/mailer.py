@@ -24,7 +24,7 @@ SMTP_FROM     = os.environ.get("SMTP_FROM", SMTP_USER)
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
 
 
-def send_external_message(recipient_email, sender_name, subject, body_preview, token):
+def send_external_message(recipient_email, sender_name, subject, body_preview, token, firmado=False):
     """
     Envía al destinatario externo un correo con el enlace de un solo uso.
 
@@ -39,6 +39,23 @@ def send_external_message(recipient_email, sender_name, subject, body_preview, t
         # Modo desarrollo: no envía — el enlace se muestra en el frontend
         return False, link
 
+    firma_badge = ""
+    if firmado:
+        firma_badge = """
+      <div style="margin:20px 0;padding:14px 18px;background:#f0faf4;border:1px solid #4fb87a66;
+                  border-radius:8px;display:flex;align-items:flex-start;gap:12px">
+        <span style="font-size:20px;color:#4fb87a;flex-shrink:0">&#10004;</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#2e7d52;margin-bottom:3px">
+            Mensaje firmado digitalmente
+          </div>
+          <div style="font-size:12px;color:#555;line-height:1.5">
+            Este mensaje fue firmado por <strong>{sender}</strong> con su certificado
+            digital. Puedes verificar la autenticidad de la firma en el enlace.
+          </div>
+        </div>
+      </div>""".format(sender=sender_name)
+
     html_body = """
     <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:32px;
                 background:#fafafa;border:1px solid #e0e0e0;border-radius:10px">
@@ -47,6 +64,7 @@ def send_external_message(recipient_email, sender_name, subject, body_preview, t
         <strong>{subject}</strong>
       </p>
       <p style="color:#333;font-size:14px;line-height:1.6">{preview}</p>
+      {firma_badge}
       <div style="margin:28px 0;text-align:center">
         <a href="{link}"
            style="background:#e8a045;color:#fff;padding:12px 28px;border-radius:8px;
@@ -63,6 +81,7 @@ def send_external_message(recipient_email, sender_name, subject, body_preview, t
         sender=sender_name,
         subject=subject,
         preview=body_preview[:200] + ("..." if len(body_preview) > 200 else ""),
+        firma_badge=firma_badge,
         link=link
     )
 

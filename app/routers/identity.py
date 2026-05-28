@@ -162,6 +162,30 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
 
 # ── Rutas estáticas (deben declararse antes de las rutas con parámetros) ──────
 
+@router.get("/verify-candidates")
+def verify_candidates(db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
+    """Lista de usuarios con certificado activo que pueden ser candidatos para verificar una firma.
+    Solo devuelve información pública: id, nombre, email y rol."""
+    users = db.query(Identity).filter(
+        Identity.estado == "ACTIVO",
+        Identity.certificate_pem != None,
+        Identity.public_key_pem != None,
+    ).all()
+    return [{"id": u.id, "nombre": u.nombre, "email": u.email, "rol": u.rol} for u in users]
+
+
+@router.get("/public-verify-candidates", include_in_schema=False)
+def public_verify_candidates(db: Session = Depends(get_db)):
+    """Versión pública (sin autenticación) de verify-candidates.
+    Usada desde la página pública de mensajes externos."""
+    users = db.query(Identity).filter(
+        Identity.estado == "ACTIVO",
+        Identity.certificate_pem != None,
+        Identity.public_key_pem != None,
+    ).all()
+    return [{"id": u.id, "nombre": u.nombre, "email": u.email, "rol": u.rol} for u in users]
+
+
 @router.get("/")
 def endpoint_get_all(db: Session = Depends(get_db), current_user: Identity = Depends(get_current_identity)):
     # Devuelve la lista completa de identidades registradas.

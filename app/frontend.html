@@ -1770,6 +1770,26 @@
     </div>
   </div>
 
+  <!-- Modal: Verificar firma -->
+  <div class="modal-overlay" id="modal-verify-sig">
+    <div class="modal" style="max-width:560px">
+      <h2>Verificar firma digital</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+        Selecciona la identidad que crees que firmó este mensaje.
+        El sistema comparará la firma contra su clave pública.
+      </p>
+      <div id="verify-candidates-list"
+        style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:340px;overflow-y:auto;margin-bottom:16px">
+        <div style="color:var(--muted);font-size:13px;padding:12px">Cargando identidades...</div>
+      </div>
+      <!-- Resultado -->
+      <div id="verify-modal-result" style="display:none;padding:14px 18px;border-radius:8px;font-size:13px;margin-bottom:16px"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeVerifyModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Firmar mensaje con S/MIME -->
   <div class="modal-overlay" id="modal-smime-sign">
     <div class="modal" style="max-width:600px">
@@ -2998,31 +3018,87 @@
 
     async function verifySignature() {
       if (!openMessageId) return;
-      const btn = document.getElementById("btn-verify-sig");
-      btn.disabled = true;
-      btn.textContent = "Verificando...";
+      // Limpiar resultado previo en el detalle del mensaje
+      document.getElementById("msg-verify-result").style.display = "none";
+      // Abrir modal de selección de candidatos
+      document.getElementById("verify-modal-result").style.display = "none";
+      document.getElementById("modal-verify-sig").classList.add("open");
+      await loadVerifyCandidates();
+    }
 
-      const { ok, data } = await api("/api/v1/messages/" + openMessageId + "/verify");
-      const result = document.getElementById("msg-verify-result");
+    function closeVerifyModal() {
+      document.getElementById("modal-verify-sig").classList.remove("open");
+    }
+
+    async function loadVerifyCandidates() {
+      const list = document.getElementById("verify-candidates-list");
+      list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px">Cargando identidades...</div>';
+
+      let ok, data;
+      try {
+        ({ ok, data } = await api("/api/v1/identities/verify-candidates"));
+      } catch (e) {
+        list.innerHTML = '<div style="color:var(--danger);font-size:13px;padding:12px">Error de red al cargar identidades.</div>';
+        return;
+      }
+
+      if (!ok) {
+        list.innerHTML = '<div style="color:var(--danger);font-size:13px;padding:12px">'
+          + (data && data.detail ? data.detail : "Error " + (data && data.status || "")) + '</div>';
+        return;
+      }
+      if (!Array.isArray(data) || data.length === 0) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px">No hay identidades con certificado activo.</div>';
+        return;
+      }
+
+      const roleColor = { Admin: "var(--accent)", Coordinator: "var(--success)", Operative: "var(--muted)", External: "var(--muted)" };
+      list.innerHTML = data.map(function(u) {
+        return '<div onclick="runVerify(' + u.id + ', \'' + u.nombre.replace(/'/g, "\\'") + '\')" '
+          + 'style="background:var(--bg);border:1px solid var(--border);border-radius:10px;'
+          + 'padding:14px;cursor:pointer;transition:border-color .15s" '
+          + 'onmouseover="this.style.borderColor=\'var(--accent)\'" '
+          + 'onmouseout="this.style.borderColor=\'var(--border)\'">'
+          + '<div style="font-weight:600;font-size:13px;margin-bottom:4px">' + u.nombre + '</div>'
+          + '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">' + u.email + '</div>'
+          + '<span style="font-size:10px;font-weight:600;color:' + (roleColor[u.rol] || "var(--muted)") + '">' + u.rol.toUpperCase() + '</span>'
+          + '</div>';
+      }).join("");
+    }
+
+    async function runVerify(candidateId, candidateName) {
+      const result = document.getElementById("verify-modal-result");
+      result.style.display = "none";
+
+      const { ok, data } = await api("/api/v1/messages/" + openMessageId + "/verify?against_id=" + candidateId);
+
       result.style.display = "block";
-
       if (ok) {
-        result.style.background = data.valido ? "#4fb87a11" : "#d94f4f11";
-        result.style.border     = "1px solid " + (data.valido ? "#4fb87a44" : "#d94f4f44");
-        result.style.borderRadius = "8px";
-        result.style.padding = "14px 18px";
+        const color = data.valido ? "#4fb87a" : "#d94f4f";
+        result.style.background = color + "11";
+        result.style.border = "1px solid " + color + "44";
         result.style.color = data.valido ? "var(--success)" : "var(--danger)";
-        result.innerHTML = "<strong>" + (data.valido ? "✔ Firma válida" : "✖ Firma inválida") + "</strong>"
+        result.innerHTML = "<strong>" + (data.valido ? "✔ Firma válida" : "✖ Firma no corresponde")
+          + "</strong> — " + candidateName
+          + "<br><span style='color:var(--muted);font-size:12px'>" + data.detalle + "</span>";
+
+        // Reflejar también en el detalle del mensaje detrás del modal
+        const msgResult = document.getElementById("msg-verify-result");
+        msgResult.style.display = "block";
+        msgResult.style.background = color + "11";
+        msgResult.style.border = "1px solid " + color + "44";
+        msgResult.style.borderRadius = "8px";
+        msgResult.style.padding = "14px 18px";
+        msgResult.style.color = data.valido ? "var(--success)" : "var(--danger)";
+        msgResult.innerHTML = "<strong>" + (data.valido ? "✔ Firma válida" : "✖ Firma no corresponde")
+          + "</strong> — verificado contra <em>" + candidateName + "</em>"
           + "<br><span style='color:var(--muted);font-size:12px'>" + data.detalle + "</span>";
       } else {
         result.style.background = "#d94f4f11";
         result.style.border = "1px solid #d94f4f44";
         result.style.color = "var(--danger)";
-        result.textContent = data.detail || "Error al verificar la firma.";
+        result.textContent = data.detail || "Error al verificar.";
       }
-
-      btn.disabled = false;
-      btn.textContent = "Verificar firma";
     }
 
     // ── Redactar ──────────────────────────────────────────────────────────────

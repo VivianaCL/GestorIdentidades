@@ -2,12 +2,14 @@
 # Gestiona el envío, recepción y verificación de mensajes entre usuarios
 # del sistema, y el envío con enlace de un solo uso a destinatarios externos.
 
+import json
+import os
 import secrets
 import base64
 import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -218,6 +220,7 @@ def send_external(
             subject=data.subject.strip(),
             body_preview=data.body.strip(),
             token=token,
+            firmado=bool(signature_b64),
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -293,12 +296,14 @@ def mark_read(
 @router.get("/{message_id}/verify")
 def verify_message(
     message_id: int,
+    against_id: int = Query(..., description="ID de la identidad cuya clave pública se usará para verificar"),
     db: Session = Depends(get_db),
     current_user: Identity = Depends(get_current_identity)
 ):
     """
-    Verifica la firma digital de un mensaje.
-    Solo puede hacerlo el destinatario o el propio remitente.
+    Verifica la firma del mensaje comparándola contra la clave pública de la
+    identidad indicada en against_id. El usuario elige explícitamente quién
+    cree que firmó el mensaje; el sistema confirma o desmiente.
     """
     msg = db.query(Message).filter(Message.id == message_id).first()
     if not msg:
@@ -307,14 +312,42 @@ def verify_message(
     if current_user.id != msg.recipient_id and current_user.id != msg.sender_id:
         raise HTTPException(status_code=403, detail="Acceso denegado.")
 
-    sender = db.query(Identity).filter(Identity.id == msg.sender_id).first()
-    valido, detalle = _verify_signature(msg.body, msg.signature_b64, sender.certificate_pem if sender else None)
+    candidate = db.query(Identity).filter(Identity.id == against_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Identidad candidata no encontrada.")
+
+    valido, detalle = _verify_signature(msg.body, msg.signature_b64, candidate.certificate_pem)
 
     return {
         "valido": valido,
         "detalle": detalle,
-        "sender_nombre": sender.nombre if sender else "Desconocido",
-        "sender_email":  sender.email  if sender else None,
+        "candidate_nombre": candidate.nombre,
+        "candidate_email":  candidate.email,
+    }
+
+
+@router.get("/externo/{token}/verify-sig", include_in_schema=False)
+def verify_external_sig(
+    token: str,
+    against_id: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Verificación pública de firma para destinatarios externos.
+    No requiere autenticación; solo necesita el token del mensaje y el ID candidato."""
+    msg = db.query(Message).filter(Message.external_token == token).first()
+    if not msg:
+        return JSONResponse({"error": "Mensaje no encontrado."}, status_code=404)
+
+    candidate = db.query(Identity).filter(Identity.id == against_id).first()
+    if not candidate:
+        return JSONResponse({"error": "Identidad no encontrada."}, status_code=404)
+
+    valido, detalle = _verify_signature(msg.body, msg.signature_b64, candidate.certificate_pem)
+    return {
+        "valido": valido,
+        "detalle": detalle,
+        "candidate_nombre": candidate.nombre,
+        "candidate_email":  candidate.email,
     }
 
 
@@ -352,20 +385,22 @@ def view_external_message(token: str, db: Session = Depends(get_db)):
     firma_color = "#4fb87a" if valido else "#d94f4f"
     firma_icono = "✔" if valido else "✖"
 
-    html = """<!DOCTYPE html>
+    # El HTML/CSS pasa por .format() para los valores dinámicos (firma_color, etc.).
+    # El bloque <script> se concatena DESPUÉS sin pasar por .format(), evitando que
+    # las llaves de JavaScript (ej. {type: "..."}) se confundan con placeholders.
+    html_body = """<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Mensaje seguro · Casa Monarca</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <style>
     *{{box-sizing:border-box;margin:0;padding:0}}
-    body{{background:#0f1117;color:#e4e6ed;font-family:'DM Sans',sans-serif;min-height:100vh;
+    body{{background:#0f1117;color:#e4e6ed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;
           display:flex;align-items:center;justify-content:center;padding:24px}}
     .card{{background:#181c27;border:1px solid #252a38;border-radius:16px;padding:40px;
            max-width:640px;width:100%;box-shadow:0 4px 32px rgba(0,0,0,.5)}}
-    .logo{{font-family:'DM Serif Display',serif;font-size:22px;color:#e8a045;margin-bottom:28px}}
+    .logo{{font-size:22px;font-weight:700;color:#e8a045;margin-bottom:28px;letter-spacing:-.3px}}
     .meta{{font-size:12px;color:#7a8099;margin-bottom:6px}}
     .subject{{font-size:20px;font-weight:600;margin-bottom:20px;color:#e4e6ed}}
     .body{{background:#0f1117;border:1px solid #252a38;border-radius:10px;padding:20px;
@@ -391,12 +426,12 @@ def view_external_message(token: str, db: Session = Depends(get_db)):
 </head>
 <body>
 <div class="card">
-  <div class="logo">Casa Monarca · Mensaje Seguro</div>
+  <div class="logo">Casa Monarca \u00b7 Mensaje Seguro</div>
   <div class="warning-banner">
-    <div class="warning-icon">⚠</div>
+    <div class="warning-icon">\u26a0</div>
     <div class="warning-text">
       <strong>Este enlace es de un solo uso.</strong><br/>
-      Ya no podrás volver a abrirlo. Guarda o imprime el mensaje antes de cerrar esta página.
+      Ya no podr\u00e1s volver a abrirlo. Guarda o imprime el mensaje antes de cerrar esta p\u00e1gina.
     </div>
   </div>
   <div class="meta">De: <strong>{sender_nombre}</strong> &lt;{sender_email}&gt;</div>
@@ -406,38 +441,112 @@ def view_external_message(token: str, db: Session = Depends(get_db)):
   <div class="firma-badge">
     <div class="firma-icon">{firma_icono}</div>
     <div>
-      <div class="firma-title">Verificación de firma digital</div>
+      <div class="firma-title">Verificaci\u00f3n de firma digital</div>
       <div class="firma-detail">{detalle_firma}</div>
     </div>
   </div>
-  <div>
+  <div style="margin-top:28px;border-top:1px solid #252a38;padding-top:24px">
+    <div style="font-size:13px;font-weight:600;color:#e4e6ed;margin-bottom:8px">Verificar firma manualmente</div>
+    <div style="font-size:12px;color:#7a8099;margin-bottom:16px">
+      Selecciona la persona que crees que firm\u00f3 este mensaje.
+    </div>
+    <div id="ext-candidates" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="color:#7a8099;font-size:13px">Cargando identidades...</div>
+    </div>
+    <div id="ext-verify-result" style="display:none;padding:14px 18px;border-radius:8px;font-size:13px"></div>
+  </div>
+  <div style="margin-top:20px">
     <button class="btn-save" onclick="window.print()">Imprimir / Guardar PDF</button>
     <button class="btn-print" onclick="descargarTexto()">Descargar como .txt</button>
   </div>
-  <div class="footer">Este mensaje fue enviado desde el Sistema de Gestión de Identidades de Casa Monarca.<br/>Este enlace ya no volverá a funcionar.</div>
-<script>
-function descargarTexto() {{
-  var texto = "De: {sender_nombre} <{sender_email}>\nFecha: {fecha}\nAsunto: {subject}\n\n{body}\n\n---\n{detalle_firma}";
-  var blob = new Blob([texto], {{type: "text/plain;charset=utf-8"}});
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "mensaje_casamonarca.txt";
-  a.click();
-}}
-</script>
-</div>
-</body>
-</html>""".format(
+  <div class="footer">Este mensaje fue enviado desde el Sistema de Gesti\u00f3n de Identidades de Casa Monarca.<br/>Este enlace ya no volver\u00e1 a funcionar.</div>""".format(
         firma_color=firma_color,
         firma_icono=firma_icono,
         sender_nombre=sender.nombre if sender else "Remitente desconocido",
-        sender_email=sender.email if sender else "—",
+        sender_email=sender.email if sender else "\u2014",
         fecha=fecha_str,
         subject=msg.subject,
         body=msg.body,
         detalle_firma=detalle_firma,
     )
-    return HTMLResponse(html)
+
+    # Datos e inyección JS — fuera del .format() para que las llaves JS no confundan a Python
+    base_url = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
+    msg_json = json.dumps({
+        "sender_nombre": sender.nombre if sender else "Remitente desconocido",
+        "sender_email":  sender.email  if sender else "\u2014",
+        "fecha":         fecha_str,
+        "subject":       msg.subject,
+        "body":          msg.body,
+        "detalle_firma": detalle_firma,
+    }, ensure_ascii=False)
+
+    html_script = (
+        "\n<script>\nvar MSG=" + msg_json
+        + ";\nvar EXT_TOKEN=" + json.dumps(token)
+        + ";\nvar API_BASE=" + json.dumps(base_url) + ";\n"
+        + """
+function descargarTexto() {
+  var t = "De: "+MSG.sender_nombre+" <"+MSG.sender_email+">"
+    +"\\nFecha: "+MSG.fecha+"\\nAsunto: "+MSG.subject
+    +"\\n\\n"+MSG.body+"\\n\\n---\\n"+MSG.detalle_firma;
+  var b = new Blob([t], {type:"text/plain;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = "mensaje_casamonarca.txt";
+  a.click();
+}
+(function() {
+  fetch(API_BASE+"/api/v1/identities/public-verify-candidates")
+    .then(function(r){return r.json();})
+    .then(function(users){
+      var g = document.getElementById("ext-candidates");
+      if (!users||!users.length) {
+        g.innerHTML='<div style="color:#7a8099;font-size:13px">No hay identidades con certificado activo.</div>';
+        return;
+      }
+      g.innerHTML = users.map(function(u) {
+        return '<div data-id="'+u.id+'" data-name="'+u.nombre.replace(/"/g,"&quot;")+'"'
+          +' onclick="extVerify(this.dataset.id,this.dataset.name)"'
+          +' style="background:#0f1117;border:1px solid #252a38;border-radius:10px;padding:14px;cursor:pointer"'
+          +' onmouseover="this.style.borderColor=\\'#e8a045\\'"'
+          +' onmouseout="this.style.borderColor=\\'#252a38\\'">'
+          +'<div style="font-weight:600;font-size:13px;color:#e4e6ed;margin-bottom:4px">'+u.nombre+'</div>'
+          +'<div style="font-size:11px;color:#7a8099">'+u.email+'</div>'
+          +'</div>';
+      }).join("");
+    })
+    .catch(function(){
+      document.getElementById("ext-candidates").innerHTML=
+        '<div style="color:#7a8099;font-size:13px">No se pudo cargar la lista.</div>';
+    });
+})();
+function extVerify(id, name) {
+  fetch(API_BASE+"/api/v1/messages/externo/"+EXT_TOKEN+"/verify-sig?against_id="+id)
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var el = document.getElementById("ext-verify-result");
+      if (d.error) {
+        el.style.cssText="display:block;padding:14px 18px;border-radius:8px;background:#d94f4f11;border:1px solid #d94f4f44;color:#d94f4f;font-size:13px";
+        el.textContent=d.error; return;
+      }
+      var c = d.valido ? "#4fb87a" : "#d94f4f";
+      el.style.cssText="display:block;padding:14px 18px;border-radius:8px;font-size:13px;"
+        +"background:"+c+"11;border:1px solid "+c+"44;color:"+c;
+      el.innerHTML="<strong>"+(d.valido?"\u2714 Firma v\u00e1lida":"\u2716 Firma no corresponde")
+        +"</strong> \u2014 "+name
+        +"<br><span style='color:#7a8099;font-size:12px'>"+d.detalle+"</span>";
+    })
+    .catch(function(){
+      var el = document.getElementById("ext-verify-result");
+      el.style.cssText="display:block;padding:14px 18px;border-radius:8px;background:#d94f4f11;border:1px solid #d94f4f44;color:#d94f4f;font-size:13px";
+      el.textContent="Error al conectar con el servidor.";
+    });
+}
+</script>\n</div>\n</body>\n</html>"""
+    )
+
+    return HTMLResponse(html_body + html_script)
 
 
 def _error_page(msg_text):
