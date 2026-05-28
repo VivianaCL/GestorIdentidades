@@ -91,11 +91,16 @@ def update_identity_status(db, identity_id: int, new_status: str):
 def delete_identity(db, identity_id: int, hard_delete: bool = False):
     # Elimina una identidad de forma física (hard) o marca su estado como BAJA (soft).
     # El sistema actualmente usa hard delete para la operación de BAJA.
-    from app.models.identity import Identity
+    from app.models.identity import Identity, Message
 
     identity = db.query(Identity).filter(Identity.id == identity_id).first()
     if identity:
         if hard_delete:
+            # Eliminar mensajes asociados antes de borrar la identidad para evitar
+            # que un futuro usuario con el mismo ID (reuso de SQLite) los herede.
+            db.query(Message).filter(
+                (Message.sender_id == identity_id) | (Message.recipient_id == identity_id)
+            ).delete(synchronize_session=False)
             db.delete(identity)
         else:
             identity.estado = "BAJA"
