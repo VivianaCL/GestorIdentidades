@@ -26,6 +26,7 @@ class IdentityResponse(BaseModel):
     # Representación pública de una identidad.
     # Excluye deliberadamente la contraseña y el material criptográfico sensible.
     id: int
+    codigo: Optional[str] = None   # Clave visible: A001, C001, O001, X001…
     nombre: str
     email: EmailStr
     rol: str

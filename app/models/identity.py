@@ -12,6 +12,9 @@ class Identity(Base):
     __tablename__ = "identities"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Clave visible legible por humanos: A001 para el primer Admin, C002 para el segundo
+    # Coordinator, etc. Es más fácil de citar en conversaciones que el ID numérico interno.
+    codigo = Column(String(10), unique=True, nullable=True, index=True)
     nombre = Column(String(255), index=True)
     email = Column(String(255), unique=True, index=True)  # Identificador único de login
     password_hash = Column(String(255))                   # Hash bcrypt; nunca la contraseña original
@@ -46,8 +49,17 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Folio de seguimiento del evento: TKT-YYYYMMDD-NNNN.
+    # Permite citar un evento específico en un reporte sin necesidad de conocer el ID interno.
+    ticket = Column(String(20), nullable=True, index=True)
     identity_id = Column(Integer, ForeignKey("identities.id"), nullable=True, index=True)  # Identidad afectada
-    actor_id = Column(Integer, nullable=True)   # Quién ejecutó la acción (puede ser diferente al afectado)
+    # Copia desnormalizada del código visible (ej. A001) al momento del evento.
+    # Se guarda aquí para que el historial sea legible incluso si el usuario es eliminado.
+    identity_codigo = Column(String(10), nullable=True)
+    actor_id = Column(Integer, nullable=True)        # Quién ejecutó la acción (puede ser diferente al afectado)
+    # Copia del código visible del actor al momento del evento (igual que identity_codigo).
+    # Así el log sigue siendo legible aunque el actor sea eliminado posteriormente.
+    actor_codigo = Column(String(10), nullable=True)
     accion = Column(String(100), index=True)    # ALTA, REVOCACION, BAJA, LOGIN_SUCCESS, etc.
     detalles = Column(Text)                     # Descripción libre del evento
 
@@ -85,5 +97,10 @@ class Message(Base):
     external_token_used = Column(Boolean, default=False)  # Se marca True en la primera vista
 
     leido = Column(Boolean, default=False)  # Para bandeja interna
+
+    # Archivos adjuntos serializados como JSON: lista de objetos con
+    # {filename, mime_type, data_b64}. El límite de 2 MB se aplica en el router
+    # antes de guardar, no aquí, para dar un mensaje de error útil al usuario.
+    attachments_json = Column(Text, nullable=True)
 
     fecha_envio = Column(DateTime, server_default=func.now(), index=True)

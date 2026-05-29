@@ -148,6 +148,7 @@ def endpoint_alta(data: IdentityCreate, db: Session = Depends(get_db), current_u
     # Es responsabilidad del Admin distribuirla de forma segura al nuevo colaborador.
     response = {
         "id": new_identity.id,
+        "codigo": new_identity.codigo,
         "nombre": new_identity.nombre,
         "email": new_identity.email,
         "rol": new_identity.rol,
@@ -315,7 +316,7 @@ def endpoint_create_ephemeral_user(request: EphemeralUserRequest, db: Session = 
             "valid_from": cert_obj.not_valid_before.isoformat(),
             "valid_until": cert_obj.not_valid_after.isoformat(),
             "duration_minutes": request.duration_minutes,
-            "message": f"Usuario efímero creado exitosamente. Acceso válido hasta las {cert_obj.not_valid_after.strftime('%H:%M:%S')}."
+            "message": f"Usuario efímero creado exitosamente. Acceso válido hasta las {(cert_obj.not_valid_after - datetime.timedelta(hours=6)).strftime('%H:%M:%S')} (hora del centro de México)."
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear usuario efímero: {str(e)}")

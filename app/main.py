@@ -5,7 +5,7 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from app.routers import identity
-from app.db.database import engine, Base, SessionLocal, expire_stale_identities
+from app.db.database import engine, Base, SessionLocal, expire_stale_identities, migrate_codigos
 from app.models.identity import Identity, AuditLog, Message
 from sqlalchemy import text
 
@@ -29,6 +29,13 @@ if os.environ.get("DB_ENGINE", "sqlite").lower() == "sqlite":
             # los ALTER solo cubren el caso de que ya existiera una versión anterior.
             "ALTER TABLE messages ADD COLUMN external_token_used BOOLEAN DEFAULT 0",
             "ALTER TABLE messages ADD COLUMN leido BOOLEAN DEFAULT 0",
+            # Claves visibles y folios de seguimiento (versión 2.x)
+            "ALTER TABLE identities ADD COLUMN codigo TEXT",
+            "ALTER TABLE audit_logs ADD COLUMN ticket TEXT",
+            "ALTER TABLE audit_logs ADD COLUMN identity_codigo TEXT",
+            "ALTER TABLE audit_logs ADD COLUMN actor_codigo TEXT",
+            # Adjuntos en mensajes (versión 2.x)
+            "ALTER TABLE messages ADD COLUMN attachments_json TEXT",
         ]:
             try:
                 _conn.execute(text(_sql))
@@ -65,6 +72,7 @@ def startup_cleanup():
             synchronize_session=False
         )
         db.commit()
+        migrate_codigos(db)
         n = expire_stale_identities(db)
         if n:
             print("[startup] {} identidad(es) efímera(s) marcadas como BAJA por expiración.".format(n))

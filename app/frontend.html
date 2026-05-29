@@ -931,6 +931,16 @@
       flex-shrink: 0;
     }
 
+    .audit-ticket {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+      width: 160px;
+      flex-shrink: 0;
+      letter-spacing: 0.03em;
+    }
+
     .audit-actor {
       color: var(--text);
       width: 120px;
@@ -940,6 +950,118 @@
     .audit-detail {
       color: var(--muted);
       flex: 1;
+    }
+
+    /* Adjuntos en mensajes */
+    .attach-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .attach-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
+    }
+    .attach-item span { flex: 1; color: var(--text); word-break: break-all; }
+    .attach-item .attach-size { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+    .attach-item .attach-remove {
+      background: none; border: none; color: var(--danger);
+      font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1;
+    }
+    .attach-add-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1px dashed var(--border); border-radius: 8px;
+      padding: 8px 14px; color: var(--muted); font-size: 13px; cursor: pointer;
+      transition: border-color .15s, color .15s; margin-top: 8px;
+    }
+    .attach-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .attach-limit { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* Pie de firma en detalle de mensaje */
+    .msg-signature-footer {
+      margin-top: 16px; padding: 14px 18px;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-size: 12px; color: var(--muted); line-height: 1.6;
+      background: var(--bg);
+    }
+    .msg-signature-footer strong { color: var(--text); font-size: 13px; }
+
+    /* Aviso de privacidad / T&C */
+    .privacy-links {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .privacy-links button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0 4px;
+    }
+
+    .privacy-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .privacy-modal-overlay.open {
+      display: flex;
+    }
+
+    .privacy-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      max-width: 600px;
+      width: 94%;
+      max-height: 80vh;
+      overflow-y: auto;
+      color: var(--text);
+    }
+
+    .privacy-modal h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+
+    .privacy-modal h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 16px 0 6px;
+    }
+
+    .privacy-modal p, .privacy-modal li {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .privacy-modal ul {
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    .privacy-modal .btn-close-privacy {
+      margin-top: 20px;
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
     }
 
     /* Toast */
@@ -1075,6 +1197,12 @@
       </div>
 
       <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+
+      <div class="privacy-links">
+        <button onclick="openPrivacyModal('privacidad')">Aviso de Privacidad</button>
+        &nbsp;·&nbsp;
+        <button onclick="openPrivacyModal('terminos')">Términos y Condiciones</button>
+      </div>
 
       <div class="login-divider">o</div>
       <button class="btn-link" onclick="toggleKeyLogin()">Usar clave criptográfica</button>
@@ -1277,7 +1405,7 @@
               <table id="users-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>Clave</th>
                     <th>Correo</th>
                     <th>Nombre</th>
                     <th>Rol</th>
@@ -1387,6 +1515,11 @@
                 style="background:var(--bg);border:1px solid var(--border);border-radius:8px;
                        padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;
                        word-break:break-word;min-height:80px"></div>
+              <!-- Adjuntos del mensaje -->
+              <div id="msg-detail-attachments" style="display:none;margin-top:12px">
+                <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">Archivos adjuntos</div>
+                <div id="msg-attachments-list" class="attach-list"></div>
+              </div>
               <!-- Resultado de verificación -->
               <div id="msg-verify-result" style="display:none;margin-top:16px;padding:14px 18px;
                 border-radius:8px;font-size:13px"></div>
@@ -1762,6 +1895,18 @@
                  padding:10px;color:var(--text);font-family:var(--font-body);font-size:13px;
                  resize:vertical;outline:none"></textarea>
       </div>
+
+      <!-- Adjuntos -->
+      <div class="form-group" style="margin-bottom:4px">
+        <label>Adjuntos</label>
+        <div id="compose-attach-list" class="attach-list"></div>
+        <button type="button" class="attach-add-btn" onclick="document.getElementById('compose-file-input').click()">
+          📎 Agregar archivo
+        </button>
+        <input type="file" id="compose-file-input" style="display:none" multiple onchange="onAttachFiles(this)"/>
+        <div class="attach-limit">Máx. 2 MB en total por mensaje</div>
+      </div>
+
       <div id="compose-error" class="login-error" style="margin-top:8px;"></div>
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeComposeModal()">Cancelar</button>
@@ -2029,9 +2174,10 @@
         recent.innerHTML = last6.map(e => `
       <div class="audit-entry">
         <span class="audit-time">${formatDate(e.fecha_evento)}</span>
+        <span class="audit-ticket">${e.ticket || '—'}</span>
         <span class="audit-action">${e.accion}</span>
-        <span class="audit-actor">Actor ID: ${e.actor_id}</span>
-        <span class="audit-detail">Target: ${e.identity_id || '-'} ${e.detalles ? '· ' + e.detalles : ''}</span>
+        <span class="audit-actor">Actor: ${e.actor_codigo || e.actor_id || '—'}</span>
+        <span class="audit-detail">${e.identity_codigo || e.identity_id || '-'} ${e.detalles ? '· ' + e.detalles : ''}</span>
       </div>`).join("");
       } else {
         recent.innerHTML = `<div class="empty-state"><div class="emoji">📋</div><p>Sin actividad registrada</p></div>`;
@@ -2055,6 +2201,7 @@
     function filterUsers() {
       const q = document.getElementById("user-search").value.toLowerCase();
       const filtered = State.users.filter(u =>
+        (u.codigo || '').toLowerCase().includes(q) ||
         (u.nombre || '').toLowerCase().includes(q) ||
         (u.email || '').toLowerCase().includes(q) ||
         (u.rol || '').toLowerCase().includes(q)
@@ -2095,8 +2242,8 @@
               const hasCert = targetUserLevel <= 2;
               actions = `
             <div class="action-group">
-              ${hasCert ? `<button class="btn-sm btn-danger" onclick="revokeUser(${u.id})">Revocar</button>` : ''}
-              <button class="btn-sm btn-baja" onclick="deleteUser(${u.id})">Baja</button>
+              ${hasCert ? `<button class="btn-sm btn-danger" onclick="revokeUser(${u.id},'${u.codigo || u.id}')">Revocar</button>` : ''}
+              <button class="btn-sm btn-baja" onclick="deleteUser(${u.id},'${u.codigo || u.id}')">Baja</button>
             </div>`;
             }
           }
@@ -2105,7 +2252,7 @@
 
         return `
       <tr>
-        <td style="color:var(--muted);font-family:monospace;font-size:12px">${u.id}</td>
+        <td style="font-family:monospace;font-size:13px;font-weight:700;color:var(--accent)">${u.codigo || u.id}</td>
         <td><strong>${u.email}</strong></td>
         <td>${u.nombre}</td>
         <td>${levelBadge}</td>
@@ -2116,15 +2263,15 @@
       }).join("");
     }
 
-    async function revokeUser(id) {
-      if (!confirm(`¿Revocar acceso del ID "${id}"?`)) return;
+    async function revokeUser(id, codigo) {
+      if (!confirm(`¿Revocar acceso de ${codigo || id}?`)) return;
       const { ok, data } = await api(`/api/v1/identities/${id}/revocar`, "PUT", { estado: "REVOCADO" });
       if (ok) { showToast(data.message, "success"); loadUsers(); }
       else showToast(data.detail || "Error", "error");
     }
 
-    async function deleteUser(id) {
-      if (!confirm(`¿Dar de BAJA DEFINITIVA al ID "${id}"? Esta acción borrará el registro.`)) return;
+    async function deleteUser(id, codigo) {
+      if (!confirm(`¿Dar de BAJA DEFINITIVA a ${codigo || id}? Esta acción borrará el registro.`)) return;
       const { ok, data } = await api(`/api/v1/identities/${id}/baja`, "DELETE", { consentimiento_baja: true });
       if (ok) { showToast(data.message, "success"); loadUsers(); }
       else showToast(data.detail || "Error", "error");
@@ -2365,9 +2512,10 @@
       el.innerHTML = [...data].reverse().map(e => `
     <div class="audit-entry">
       <span class="audit-time">${formatDate(e.fecha_evento)}</span>
+      <span class="audit-ticket">${e.ticket || '—'}</span>
       <span class="audit-action">${e.accion}</span>
-      <span class="audit-actor">Actor ID: ${e.actor_id}</span>
-      <span class="audit-detail">Target: ${e.identity_id || '-'} ${e.detalles ? ' · ' + e.detalles : ''}</span>
+      <span class="audit-actor">Actor: ${e.actor_id || '—'}</span>
+      <span class="audit-detail">${e.identity_codigo || e.identity_id || '-'} ${e.detalles ? ' · ' + e.detalles : ''}</span>
     </div>`).join("");
     }
 
@@ -2979,14 +3127,24 @@
 
     // ── Detalle de mensaje ────────────────────────────────────────────────────
 
+    // Guarda sender del mensaje abierto para el modal de verificación
+    let openMessageSender = null;
+
     async function openMessage(id, tieneFirma) {
       openMessageId = id;
-      // Buscar el mensaje en el DOM actual para sus datos
       const path = mailTab === "inbox" ? "/api/v1/messages/inbox" : "/api/v1/messages/sent";
       const { ok, data } = await api(path);
       if (!ok) return;
       const msg = data.find(function(m) { return m.id === id; });
       if (!msg) return;
+
+      // Guardar sender para el modal de verificación
+      openMessageSender = {
+        id:     msg.sender_id,
+        nombre: msg.sender_nombre || msg.sender_email || "Remitente",
+        email:  msg.sender_email  || "",
+        codigo: msg.sender_codigo || null,
+      };
 
       document.getElementById("msg-detail-subject").textContent = msg.subject;
       const who = mailTab === "inbox"
@@ -2997,13 +3155,29 @@
       document.getElementById("msg-detail-body").textContent = msg.body;
       document.getElementById("msg-verify-result").style.display = "none";
 
+      // Adjuntos
+      const attWrap = document.getElementById("msg-detail-attachments");
+      const attList = document.getElementById("msg-attachments-list");
+      if (msg.attachments && msg.attachments.length) {
+        attList.innerHTML = msg.attachments.map(function(a) {
+          return '<div class="attach-item">'
+            + '<span>📎 ' + a.filename + '</span>'
+            + '<a href="data:' + (a.mime_type||'application/octet-stream') + ';base64,' + a.data_b64
+            + '" download="' + a.filename + '" style="font-size:12px;color:var(--accent);font-weight:600;text-decoration:none">Descargar</a>'
+            + '</div>';
+        }).join("");
+        attWrap.style.display = "block";
+      } else {
+        attWrap.style.display = "none";
+        attList.innerHTML = "";
+      }
+
       // Mostrar botón verificar solo en recibidos con firma
       const btnVerify = document.getElementById("btn-verify-sig");
       btnVerify.style.display = (mailTab === "inbox" && tieneFirma) ? "inline-flex" : "none";
 
       document.getElementById("message-detail-wrap").style.display = "block";
 
-      // Marcar como leído si es de la bandeja de entrada
       if (mailTab === "inbox" && !msg.leido) {
         await api("/api/v1/messages/" + id + "/read", "PUT");
         updateInboxBadge();
@@ -3044,7 +3218,7 @@
 
       if (!ok) {
         list.innerHTML = '<div style="color:var(--danger);font-size:13px;padding:12px">'
-          + (data && data.detail ? data.detail : "Error " + (data && data.status || "")) + '</div>';
+          + (data && data.detail ? data.detail : "Error al cargar") + '</div>';
         return;
       }
       if (!Array.isArray(data) || data.length === 0) {
@@ -3054,12 +3228,13 @@
 
       const roleColor = { Admin: "var(--accent)", Coordinator: "var(--success)", Operative: "var(--muted)", External: "var(--muted)" };
       list.innerHTML = data.map(function(u) {
+        const label = u.nombre + (u.codigo ? ' <span style="font-size:11px;color:var(--accent);font-weight:600">· ' + u.codigo + '</span>' : '');
         return '<div onclick="runVerify(' + u.id + ', \'' + u.nombre.replace(/'/g, "\\'") + '\')" '
           + 'style="background:var(--bg);border:1px solid var(--border);border-radius:10px;'
           + 'padding:14px;cursor:pointer;transition:border-color .15s" '
           + 'onmouseover="this.style.borderColor=\'var(--accent)\'" '
           + 'onmouseout="this.style.borderColor=\'var(--border)\'">'
-          + '<div style="font-weight:600;font-size:13px;margin-bottom:4px">' + u.nombre + '</div>'
+          + '<div style="font-weight:600;font-size:13px;margin-bottom:4px">' + label + '</div>'
           + '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">' + u.email + '</div>'
           + '<span style="font-size:10px;font-weight:600;color:' + (roleColor[u.rol] || "var(--muted)") + '">' + u.rol.toUpperCase() + '</span>'
           + '</div>';
@@ -3103,6 +3278,53 @@
 
     // ── Redactar ──────────────────────────────────────────────────────────────
 
+    // Almacena adjuntos pendientes de envío: [{filename, mime_type, data_b64, size}]
+    let composeAttachments = [];
+    const ATTACH_MAX = 2 * 1024 * 1024; // 2 MB
+
+    function onAttachFiles(input) {
+      const files = Array.from(input.files);
+      input.value = ""; // reset para permitir seleccionar el mismo archivo otra vez
+      const errEl = document.getElementById("compose-error");
+      errEl.classList.remove("visible");
+
+      files.forEach(function(file) {
+        // Verificar límite total
+        const currentTotal = composeAttachments.reduce(function(s, a) { return s + a.size; }, 0);
+        if (currentTotal + file.size > ATTACH_MAX) {
+          errEl.textContent = "Los adjuntos superarían el límite de 2 MB. Elimina alguno antes de agregar más.";
+          errEl.classList.add("visible");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const dataUrl = e.target.result; // "data:mime;base64,XXXX"
+          const b64 = dataUrl.split(",")[1];
+          composeAttachments.push({ filename: file.name, mime_type: file.type || "application/octet-stream", data_b64: b64, size: file.size });
+          renderAttachList();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderAttachList() {
+      const list = document.getElementById("compose-attach-list");
+      if (!composeAttachments.length) { list.innerHTML = ""; return; }
+      list.innerHTML = composeAttachments.map(function(a, i) {
+        const kb = (a.size / 1024).toFixed(1);
+        return '<div class="attach-item">'
+          + '<span>📎 ' + a.filename + '</span>'
+          + '<span class="attach-size">' + kb + ' KB</span>'
+          + '<button class="attach-remove" onclick="removeAttach(' + i + ')" title="Eliminar">×</button>'
+          + '</div>';
+      }).join("");
+    }
+
+    function removeAttach(idx) {
+      composeAttachments.splice(idx, 1);
+      renderAttachList();
+    }
+
     async function openComposeModal() {
       document.getElementById("compose-subject").value = "";
       document.getElementById("compose-body").value = "";
@@ -3110,6 +3332,8 @@
       document.getElementById("compose-error").classList.remove("visible");
       document.getElementById("compose-ext-link-wrap").style.display = "none";
       document.getElementById("btn-send-msg").style.display = "";
+      composeAttachments = [];
+      renderAttachList();
       switchComposeTab("internal");
 
       // Cargar usuarios si aún no están en memoria (el usuario puede no haber visitado Colaboradores)
@@ -3136,6 +3360,8 @@
 
     function closeComposeModal() {
       document.getElementById("modal-compose").classList.remove("open");
+      composeAttachments = [];
+      renderAttachList();
     }
 
     function switchComposeTab(tab) {
@@ -3172,6 +3398,11 @@
       btn.disabled = true;
       btn.textContent = "Enviando...";
 
+      // Adjuntos: sólo metadatos sin el campo size (que es local)
+      const attachPayload = composeAttachments.map(function(a) {
+        return { filename: a.filename, mime_type: a.mime_type, data_b64: a.data_b64 };
+      });
+
       try {
         if (composeTab === "internal") {
           const recipientId = parseInt(document.getElementById("compose-recipient-id").value);
@@ -3181,7 +3412,7 @@
             return;
           }
           const { ok, data } = await api("/api/v1/messages/send/internal", "POST", {
-            recipient_id: recipientId, subject, body
+            recipient_id: recipientId, subject, body, attachments: attachPayload
           });
           if (ok) {
             closeComposeModal();
@@ -3200,11 +3431,10 @@
             return;
           }
           const { ok, data } = await api("/api/v1/messages/send/external", "POST", {
-            recipient_email: extEmail, subject, body
+            recipient_email: extEmail, subject, body, attachments: attachPayload
           });
           if (ok) {
             if (!data.email_enviado && data.enlace_acceso) {
-              // Modo desarrollo: mostrar el enlace en pantalla
               document.getElementById("compose-ext-link").textContent = data.enlace_acceso;
               document.getElementById("compose-ext-link-wrap").style.display = "block";
               document.getElementById("btn-send-msg").style.display = "none";
@@ -3294,7 +3524,91 @@
       });
       tryRestoreSession();
     });
-  </script>
-</body>
+    function openPrivacyModal(tipo) {
+      document.getElementById("modal-privacidad").classList.toggle("open", tipo === "privacidad");
+      document.getElementById("modal-terminos").classList.toggle("open", tipo === "terminos");
+    }
 
+    function closePrivacyModal() {
+      document.getElementById("modal-privacidad").classList.remove("open");
+      document.getElementById("modal-terminos").classList.remove("open");
+    }
+  </script>
+
+<!-- ── Modal Aviso de Privacidad ─────────────────────────────────────────── -->
+<div class="privacy-modal-overlay" id="modal-privacidad" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="privacy-modal">
+    <h2>Aviso de Privacidad</h2>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:12px">Conforme a la Ley Federal de Protección de Datos Personales en Posesión de Particulares (LFPDPPP)</p>
+
+    <h3>Responsable del tratamiento</h3>
+    <p>Casa Monarca, Ayuda Humanitaria al Migrante, A.C. ("Casa Monarca"), con domicilio en Monterrey, Nuevo León, México, es responsable del tratamiento de sus datos personales recabados a través del presente Sistema de Gestión de Identidades (SGI).</p>
+
+    <h3>Datos personales recabados</h3>
+    <ul>
+      <li>Nombre completo</li>
+      <li>Correo electrónico institucional</li>
+      <li>Credenciales de acceso (contraseña cifrada con bcrypt)</li>
+      <li>Material criptográfico (llaves RSA y certificados X.509)</li>
+      <li>Registros de actividad (auditoría de accesos y operaciones)</li>
+      <li>Fecha y hora de consentimiento (Derecho ARCO)</li>
+    </ul>
+
+    <h3>Finalidades del tratamiento</h3>
+    <ul>
+      <li><strong>Primarias:</strong> Gestión de identidades y control de acceso al SGI; emisión y revocación de certificados digitales; autenticación segura con segundo factor (TOTP/MFA); firma y verificación de correos institucionales (S/MIME).</li>
+      <li><strong>Secundarias:</strong> Generación de registros de auditoría para cumplimiento normativo y trazabilidad de operaciones.</li>
+    </ul>
+
+    <h3>Transferencias de datos</h3>
+    <p>Casa Monarca no transfiere datos personales a terceros, salvo obligación legal expresa. Los datos se almacenan en servidores propios o contratados bajo acuerdos de confidencialidad.</p>
+
+    <h3>Derechos ARCO</h3>
+    <p>Usted puede ejercer sus derechos de <strong>Acceso, Rectificación, Cancelación u Oposición</strong> enviando una solicitud al administrador del sistema o al correo institucional designado. La baja definitiva de sus datos requiere consentimiento explícito y es irreversible conforme a lo establecido en el sistema.</p>
+
+    <h3>Consentimiento</h3>
+    <p>El registro en el SGI implica el consentimiento expreso para el tratamiento de datos personales conforme a este aviso. El campo <em>consentimiento_alta</em> registra la fecha y hora exactas del consentimiento otorgado.</p>
+
+    <h3>Cambios al aviso</h3>
+    <p>Cualquier modificación a este aviso será notificada a través del SGI. La versión vigente siempre estará disponible en la pantalla de inicio.</p>
+
+    <button class="btn-close-privacy" onclick="closePrivacyModal()">Entendido</button>
+  </div>
+</div>
+
+<!-- ── Modal Términos y Condiciones ──────────────────────────────────────── -->
+<div class="privacy-modal-overlay" id="modal-terminos" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="privacy-modal">
+    <h2>Términos y Condiciones de Uso</h2>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:12px">Sistema de Gestión de Identidades — Casa Monarca, A.C.</p>
+
+    <h3>1. Aceptación</h3>
+    <p>Al iniciar sesión en el SGI usted acepta los presentes términos. El uso del sistema implica la aceptación plena de estas condiciones.</p>
+
+    <h3>2. Uso autorizado</h3>
+    <p>El SGI es un sistema de uso exclusivo para personal autorizado de Casa Monarca. Queda estrictamente prohibido:</p>
+    <ul>
+      <li>Compartir credenciales de acceso con terceros.</li>
+      <li>Utilizar el sistema para fines ajenos a las actividades institucionales.</li>
+      <li>Intentar acceder a información de identidades fuera del nivel jerárquico propio.</li>
+      <li>Exportar o divulgar material criptográfico (llaves privadas, certificados) sin autorización.</li>
+    </ul>
+
+    <h3>3. Responsabilidad del usuario</h3>
+    <p>Cada usuario es responsable de las acciones realizadas con sus credenciales. Todas las operaciones quedan registradas en el log de auditoría con folio de seguimiento trazable. Ante cualquier sospecha de uso indebido, notifique al administrador de inmediato.</p>
+
+    <h3>4. Clave privada</h3>
+    <p>La clave privada RSA se entrega una única vez al momento del alta. Casa Monarca no puede recuperarla. El usuario es el único custodio responsable de su resguardo seguro.</p>
+
+    <h3>5. Disponibilidad</h3>
+    <p>Casa Monarca no garantiza disponibilidad continua del sistema. El acceso puede ser suspendido por mantenimiento, razones de seguridad o incumplimiento de estos términos.</p>
+
+    <h3>6. Legislación aplicable</h3>
+    <p>Estos términos se rigen por las leyes de los Estados Unidos Mexicanos. Cualquier controversia será resuelta ante los tribunales competentes de Monterrey, Nuevo León.</p>
+
+    <button class="btn-close-privacy" onclick="closePrivacyModal()">Aceptar</button>
+  </div>
+</div>
+
+</body>
 </html>
