@@ -1,53 +1,69 @@
 ---
 name: Estado del proyecto GestorIdentidades
-description: Qué se ha implementado, qué falta y decisiones arquitectónicas clave
+description: Qué está implementado, decisiones técnicas clave y pendientes — actualizado v2.0.0
 type: project
 ---
 
 Sistema FastAPI de gestión de identidades con PKI X.509, MFA, S/MIME y mensajería firmada.
+Deploy destino: HostGator shared hosting (sin Redis, sin cron, sin root).
 
 ## Stack
 - Python 3.6.8, FastAPI 0.61.1, SQLAlchemy 1.3.24
-- DB dual: SQLite (dev, `DB_ENGINE=sqlite`) / MySQL via PyMySQL (prod HostGator, `DB_ENGINE=mysql`)
-- Deploy destino: HostGator shared hosting
+- DB dual: SQLite (dev) / MySQL via PyMySQL (prod, `DB_ENGINE=mysql`)
+- Frontend: SPA en `frontend.html` sin frameworks externos, tema oscuro con acentos dorados
 
-## Implementado en sesión actual
+---
 
-### Migración SQLite → MySQL
-- `app/db/database.py` lee `DB_ENGINE` del `.env`; SQLite sigue funcionando en dev
-- Modelos usan `String(n)` y `Text` en lugar de `String` sin longitud (requisito MySQL)
-- Migraciones manuales `ALTER TABLE` solo corren cuando `DB_ENGINE=sqlite`
+## Implementado (v2.0.0)
 
-### S/MIME
-- `export_pkcs12()` — exporta `.p12` compatible con Outlook/Thunderbird/Apple Mail
-- `sign_smime()` — firma S/MIME multipart/signed (PKCS#7 detached)
-- `generate_user_certificate()` ahora acepta `email` y añade SAN + KeyUsage + ExtendedKeyUsage (requerido por Outlook)
-- Endpoints: `POST /{id}/smime/export-p12` y `POST /{id}/smime/sign`
-- Integrados en frontend (pestaña Certificados)
+### Identidades
+- Alta, revocación, revalidación, baja definitiva (hard delete con consentimiento ARCO)
+- Código visible por rol: A001 Admin, C001 Coordinator, O001 Operative, X001 External
+- Migración automática al arrancar para registros anteriores sin código
+- Jerarquía: Admin > Coordinator > Operative > External
+- `delete_identity` elimina primero los mensajes del usuario antes del hard delete (evita herencia por reuso de ID en SQLite)
 
-### Sistema de mensajería firmada
-- Modelo `Message` en DB (sender, recipient interno/externo, body, signature_b64, external_token)
-- Firma RSA-PSS SHA-256 detached (no MIME completo — más simple de verificar)
-- `app/routers/messages.py`: send/internal, send/external, inbox, sent, verify, externo/{token}
-- `app/services/mailer.py`: SMTP dual dev (`SMTP_ENABLED=false` → enlace en pantalla) / prod
-- Página pública `/mensaje-externo?token=...` para destinatarios externos sin login
-- Pestaña "Correos" en frontend con Recibidos/Enviados, badge de no leídos, verificación de firma
+### Autenticación
+- Login contraseña + JWT (8 h), login por clave criptográfica (challenge-response RSA-PSS), TOTP/MFA opcional
+- Expiración automática de efímeros al login y al listar colaboradores (lazy, máx 1/h)
+
+### Auditoría
+- Folio TKT-YYYYMMDD-NNNN por evento
+- `identity_codigo` y `actor_codigo` desnormalizados (legibles aunque el usuario sea eliminado)
+- Vista global (Admin) y vista por identidad
+
+### Mensajería
+- Mensajes internos (firmados RSA-PSS) y externos (enlace de un solo uso)
+- Pie de firma institucional añadido al cuerpo ANTES de firmarlo (cubre nombre + código + correo)
+- Archivos adjuntos: límite 2 MB total por mensaje, base64 en JSON, descargables desde UI y página pública
+- **Verificación interna:** todos los usuarios con certificado activo, en grilla de 2 col, con código visible
+- **Verificación externa (página pública):** solo el remitente, verificación bajo demanda al hacer clic
+- Firma S/MIME PKCS#7 detached desde pestaña Certificados
+
+### Privacidad
+- Aviso de Privacidad (LFPDPPP) y Términos y Condiciones desde pantalla de login
+- Consentimiento ARCO con timestamp en alta y baja
+
+---
+
+## Decisiones técnicas relevantes
+
+- **Límite adjuntos 2 MB:** conservador para HostGator shared; suficiente para PDFs y documentos ligeros
+- **actor_codigo en AuditLog:** copiado al momento del evento; el log es legible aunque el actor sea eliminado
+- **CA raíz no persistida:** se regenera en cada operación; los certificados no comparten cadena de confianza real — pendiente en TODO
+- **JWT sin blocklist:** logout es cosmético — pendiente en TODO
+- **Hora efímeros:** se convierte a UTC-6 en el mensaje de confirmación; timestamps internos siguen en UTC
+- **SECRET_KEY default:** `b33fb4n6m0n4rc4` solo en dev; NO cambiar en prod sin re-cifrar la DB
+
+---
 
 ## Problema conocido
-- Admins creados con seed.py (ID 1, 5) no tienen `private_key_pem_encrypted` → no pueden firmar
-- Solución: renovar certificado desde frontend (Certificados → Extender) o PUT /renovar-cert
-- **Why:** Fueron creados antes de implementar almacenamiento de clave privada cifrada
+- Admins creados con seed.py antes de la implementación de clave privada cifrada no pueden firmar correos
+- Solución: renovar certificado desde frontend (Certificados → Extender) o `PUT /renovar-cert`
 
-## Variables de entorno clave (.env)
-- `DB_ENGINE=sqlite|mysql`
-- `SECRET_KEY=b33fb4n6m0n4rc4` ← clave actual en dev; NO cambiar sin re-cifrar DB
-- `SMTP_ENABLED=false|true`
-- `BASE_URL=http://127.0.0.1:8000`
-
-## Pendiente (TODO.md)
-- Remover SECRET_KEY hardcodeado del código
-- Persistir CA raíz (actualmente se regenera en cada operación)
-- Invalidación de JWT en logout (blocklist)
+## Pendientes prioritarios (ver TODO.md)
+- Persistir CA raíz
+- Blocklist JWT en logout/revocación
+- SECRET_KEY obligatorio al arrancar (abortar si no está definido)
 - Suite de pruebas en tests/
-- Validación de fortaleza de contraseñas
-- Expiración automática de usuarios efímeros
+- Migración formal con Alembic
