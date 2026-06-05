@@ -1,9 +1,32 @@
 # CHANGELOG — Gestor de Identidades
 
-## [Unreleased]
+## [2.0.0] — 2026-05-29
 
-- **Fix:** removido `pymysql` de `requirements.txt` (nunca fue requerido; la app usa SQLite exclusivamente).
-- **Docs:** README actualizado con instalación sin entorno virtual, versión de Python corregida a 3.6.8 (probada) con nota de compatibilidad no verificada para 3.7–3.9.
+### Identidades
+- **Feat:** Códigos visibles por identidad (`A001`, `C002`, `O001`, `X003`…). Cada usuario recibe automáticamente una clave legible según su rol al ser creado. Los registros anteriores reciben código en el primer arranque del servidor.
+- **Feat:** Búsqueda de colaboradores por código visible, además de nombre, correo y rol.
+- **Feat:** Los diálogos de revocación y baja muestran el código visible en lugar del ID numérico.
+
+### Auditoría
+- **Feat:** Folio de seguimiento por evento de auditoría. Formato `TKT-YYYYMMDD-NNNN`, citable en reportes de incidentes.
+- **Feat:** Copia desnormalizada del código visible de la identidad afectada en cada evento del log (`identity_codigo`). El historial sigue siendo legible aunque el usuario sea eliminado físicamente.
+
+### Mensajería
+- **Feat:** Pie de firma institucional añadido automáticamente a todos los mensajes (internos y externos). Incluye nombre, código visible y correo del remitente, cubierto por la firma digital.
+- **Feat:** Archivos adjuntos en mensajes internos y externos. Límite de 2 MB totales por mensaje, validado tanto en el navegador como en el servidor. Los adjuntos son descargables directamente desde el detalle del mensaje y desde la página pública.
+- **Feat:** Verificación de firma bajo demanda y acotada al remitente. El modal de verificación muestra solo al remitente del mensaje abierto; la verificación se ejecuta al hacer clic, no al abrir.
+- **Feat:** Página pública de mensajes externos solo muestra al remitente como candidato para verificación de firma, eliminando la lista completa de usuarios del sistema.
+- **Fix:** La hora de expiración en la creación de usuarios efímeros ahora se muestra en UTC-6 (hora del centro de México) en lugar de UTC.
+
+### Privacidad y cumplimiento
+- **Feat:** Aviso de Privacidad accesible desde la pantalla de login. Cubre los requisitos básicos de la LFPDPPP: responsable del tratamiento, datos recabados, finalidades, transferencias y derechos ARCO.
+- **Feat:** Términos y Condiciones de Uso accesibles desde la pantalla de login. Define uso autorizado, responsabilidad del usuario, custodia de clave privada y legislación aplicable.
+
+### Infraestructura
+- **Refactor:** Migraciones SQLite actualizadas en `main.py` para las nuevas columnas (`identities.codigo`, `audit_logs.ticket`, `audit_logs.identity_codigo`, `messages.attachments_json`).
+- **Docs:** Comentarios de código revisados para ser más descriptivos y orientados al "por qué", no solo al "qué".
+- **Docs:** README completamente reescrito con tabla de variables de entorno, estructura actualizada del proyecto y descripción de todas las funcionalidades actuales.
+- **Docs:** TODO actualizado: nuevos ítems marcados como completados, nuevas tareas pendientes añadidas.
 
 ---
 

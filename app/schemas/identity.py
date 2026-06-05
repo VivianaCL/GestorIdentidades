@@ -14,6 +14,7 @@ class IdentityCreate(BaseModel):
     password: str
     rol: str
     cert_days_valid: Optional[float] = 365  # Días de vigencia del certificado; acepta fracciones para horas
+    consentimiento_alta: bool  # Consentimiento explícito del titular requerido por el Derecho ARCO
 
 
 class IdentityStatusUpdate(BaseModel):
@@ -25,6 +26,7 @@ class IdentityResponse(BaseModel):
     # Representación pública de una identidad.
     # Excluye deliberadamente la contraseña y el material criptográfico sensible.
     id: int
+    codigo: Optional[str] = None   # Clave visible: A001, C001, O001, X001…
     nombre: str
     email: EmailStr
     rol: str
@@ -44,3 +46,55 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     # Datos extraídos del payload del JWT durante la validación de sesión.
     email: Optional[str] = None
+
+
+# ── Schemas MFA ───────────────────────────────────────────────────────────────
+
+class MFASetupResponse(BaseModel):
+    # Respuesta al iniciar la configuración de MFA: incluye el secreto y la URI
+    # para que el frontend genere el código QR.
+    secret: str
+    uri: str
+
+class MFAConfirmSetup(BaseModel):
+    # Payload para confirmar la activación de MFA: el secreto provisional
+    # y el primer código TOTP generado por la app del usuario.
+    secret: str
+    code: str
+
+class MFAValidate(BaseModel):
+    # Payload para completar el login cuando MFA está activo.
+    temp_token: str
+    code: str
+
+class MFADisable(BaseModel):
+    # Para desactivar MFA se requiere el código actual como confirmación.
+    code: str
+
+class MFAStatusResponse(BaseModel):
+    # Indica si el usuario autenticado tiene MFA habilitado.
+    mfa_enabled: bool
+
+
+# ── Schemas ARCO ──────────────────────────────────────────────────────────────
+
+class BajaRequest(BaseModel):
+    # Payload para dar de baja una identidad (endpoint DELETE /baja).
+    # El consentimiento explícito es obligatorio conforme al Derecho ARCO.
+    consentimiento_baja: bool  # Debe ser True; False rechaza la operación
+
+
+# ── Schemas S/MIME ─────────────────────────────────────────────────────────────
+
+class SMimeSignRequest(BaseModel):
+    # Contenido del correo a firmar digitalmente.
+    content: str
+
+# ── Schemas autenticación por clave criptográfica ───────────────────────────
+
+class KeyLoginRequest(BaseModel):
+    # Respuesta al desafío: email del usuario, ID del desafío emitido por el
+    # servidor y firma RSA-PSS SHA-256 del challenge en base64.
+    email: str
+    challenge_id: str
+    signature_b64: str

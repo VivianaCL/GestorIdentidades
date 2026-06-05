@@ -56,6 +56,172 @@
       font-family: var(--font-body);
     }
 
+    /* ── Pantalla MFA (segundo factor) ──────────────────────────────── */
+    #mfa-screen {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 30% 20%, #1a1200 0%, var(--bg) 60%);
+      animation: fadeIn .5s ease;
+    }
+    #mfa-screen.active { display: flex; }
+
+    .mfa-code-inputs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 18px 0;
+    }
+    .mfa-code-inputs input {
+      width: 44px;
+      height: 54px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 600;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+      font-family: var(--font-body);
+      transition: border-color .15s;
+    }
+    .mfa-code-inputs input:focus { border-color: var(--accent); }
+
+    /* ── Panel de Temas / Apariencia ────────────────────────────────── */
+    .theme-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .theme-tab {
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      cursor: pointer;
+      transition: color .15s, background .15s;
+    }
+    .theme-tab.active {
+      color: var(--accent);
+      background: rgba(232,160,69,.08);
+    }
+    .theme-tab-panel { display: none; }
+    .theme-tab-panel.active { display: block; }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .color-row:last-child { border-bottom: none; }
+    .color-row-label { font-size: 13px; color: var(--text); }
+    .color-row-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .color-picker-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .color-picker-wrap input[type="color"] {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 2px;
+      background: var(--surface);
+    }
+    .color-hex {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: monospace;
+      width: 60px;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .preset-card {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color .2s, transform .15s;
+    }
+    .preset-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .preset-card.selected { border-color: var(--accent); }
+    .preset-preview {
+      height: 64px;
+      display: flex;
+      gap: 0;
+    }
+    .preset-preview-col { flex: 1; }
+    .preset-info {
+      padding: 10px 12px;
+      background: var(--surface);
+    }
+    .preset-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .preset-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .theme-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+    .btn-reset-theme {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* ── Panel de configuración MFA ─────────────────────────────────── */
+    .mfa-qr-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 16px 0;
+    }
+    .mfa-qr-box #qrcode canvas, .mfa-qr-box #qrcode img {
+      border-radius: 8px;
+    }
+    .mfa-secret-label {
+      font-size: 11px;
+      color: #1a1a1a;
+      word-break: break-all;
+      text-align: center;
+      max-width: 280px;
+    }
+    .mfa-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .mfa-badge.on  { background: rgba(79,184,122,.15); color: var(--success); border: 1px solid var(--success); }
+    .mfa-badge.off { background: rgba(217,79,79,.12);  color: var(--danger);  border: 1px solid var(--danger); }
+
     /* ── Pantalla de Login ───────────────────────────────────────────── */
     #login-screen {
       display: flex;
@@ -192,6 +358,28 @@
 
     .login-error.visible {
       display: block;
+    }
+
+    .login-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 18px 0 14px;
+      color: var(--muted); font-size: 12px;
+    }
+    .login-divider::before, .login-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .btn-link {
+      background: none; border: none; color: var(--accent);
+      font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline;
+      width: 100%; text-align: center; margin-top: 4px;
+    }
+    .key-login-step { display: none; }
+    .key-login-step.active { display: block; }
+    .challenge-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px;
+      font-family: monospace; font-size: 11px; color: var(--muted);
+      word-break: break-all; margin-bottom: 12px;
     }
 
     /* ── Dashboard ───────────────────────────────────────────────────── */
@@ -743,6 +931,16 @@
       flex-shrink: 0;
     }
 
+    .audit-ticket {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+      width: 160px;
+      flex-shrink: 0;
+      letter-spacing: 0.03em;
+    }
+
     .audit-actor {
       color: var(--text);
       width: 120px;
@@ -752,6 +950,118 @@
     .audit-detail {
       color: var(--muted);
       flex: 1;
+    }
+
+    /* Adjuntos en mensajes */
+    .attach-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .attach-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
+    }
+    .attach-item span { flex: 1; color: var(--text); word-break: break-all; }
+    .attach-item .attach-size { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+    .attach-item .attach-remove {
+      background: none; border: none; color: var(--danger);
+      font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1;
+    }
+    .attach-add-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1px dashed var(--border); border-radius: 8px;
+      padding: 8px 14px; color: var(--muted); font-size: 13px; cursor: pointer;
+      transition: border-color .15s, color .15s; margin-top: 8px;
+    }
+    .attach-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .attach-limit { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* Pie de firma en detalle de mensaje */
+    .msg-signature-footer {
+      margin-top: 16px; padding: 14px 18px;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-size: 12px; color: var(--muted); line-height: 1.6;
+      background: var(--bg);
+    }
+    .msg-signature-footer strong { color: var(--text); font-size: 13px; }
+
+    /* Aviso de privacidad / T&C */
+    .privacy-links {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .privacy-links button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0 4px;
+    }
+
+    .privacy-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .privacy-modal-overlay.open {
+      display: flex;
+    }
+
+    .privacy-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      max-width: 600px;
+      width: 94%;
+      max-height: 80vh;
+      overflow-y: auto;
+      color: var(--text);
+    }
+
+    .privacy-modal h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+
+    .privacy-modal h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 16px 0 6px;
+    }
+
+    .privacy-modal p, .privacy-modal li {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .privacy-modal ul {
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    .privacy-modal .btn-close-privacy {
+      margin-top: 20px;
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
     }
 
     /* Toast */
@@ -887,6 +1197,79 @@
       </div>
 
       <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar</button>
+
+      <div class="privacy-links">
+        <button onclick="openPrivacyModal('privacidad')">Aviso de Privacidad</button>
+        &nbsp;·&nbsp;
+        <button onclick="openPrivacyModal('terminos')">Términos y Condiciones</button>
+      </div>
+
+      <div class="login-divider">o</div>
+      <button class="btn-link" onclick="toggleKeyLogin()">Usar clave criptográfica</button>
+    </div>
+
+    <!-- ── Panel login por clave criptográfica ── -->
+    <div class="login-card" id="key-login-card" style="display:none; margin-top:16px;">
+      <h2 style="margin-bottom:6px;">Clave criptográfica</h2>
+      <p class="subtitle">Solo para Administradores y Coordinadores con certificado activo</p>
+
+      <div id="key-login-error" class="login-error"></div>
+
+      <!-- Paso 1: solicitar desafío -->
+      <div class="key-login-step active" id="kl-step1">
+        <div class="form-group">
+          <label>Correo electrónico</label>
+          <input type="email" id="kl-email" placeholder="usuario@casamonarca.com" autocomplete="email" />
+        </div>
+        <button class="btn-primary" onclick="klRequestChallenge()">Solicitar desafío</button>
+      </div>
+
+      <!-- Paso 2: firmar y autenticar -->
+      <div class="key-login-step" id="kl-step2">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">
+          Desafío recibido. Selecciona tu archivo de clave privada (<code>.pem</code>) para firmarlo.
+        </p>
+        <div class="challenge-box" id="kl-challenge-preview"></div>
+        <div class="form-group">
+          <label>Clave privada (.pem)</label>
+          <input type="file" id="kl-pem-file" accept=".pem,text/plain"
+            style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);width:100%;box-sizing:border-box;" />
+        </div>
+        <button class="btn-primary" onclick="klAuthenticate()">Autenticar</button>
+        <button class="btn-link" style="margin-top:10px;" onclick="klReset()">← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+     PANTALLA MFA (segundo factor)
+══════════════════════════════════════════════════════════════ -->
+  <div id="mfa-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="butterfly">🦋</div>
+        <div class="login-logo-text">
+          <h1>Casa Monarca</h1>
+          <p>Verificación en dos pasos</p>
+        </div>
+      </div>
+
+      <h2>Código de verificación</h2>
+      <p class="subtitle">Ingresa el código de 6 dígitos de tu aplicación autenticadora</p>
+
+      <div id="mfa-error" class="login-error">Código inválido o expirado.</div>
+
+      <div class="mfa-code-inputs" id="mfa-digits">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      </div>
+
+      <button class="btn-primary" id="btn-mfa" onclick="doMFAValidate()">Verificar</button>
+      <button style="background:none;border:none;color:var(--muted);font-size:12px;margin-top:12px;width:100%;cursor:pointer;" onclick="cancelMFA()">← Volver al inicio de sesión</button>
     </div>
   </div>
 
@@ -929,6 +1312,25 @@
           <div class="nav-section-label">Administración</div>
           <div class="nav-item" onclick="showPage('audit')" id="nav-audit">
             <span class="icon">📋</span> Auditoría
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Comunicación</div>
+          <div class="nav-item" onclick="showPage('messages')" id="nav-messages">
+            <span class="icon">✉</span> Correos
+            <span id="inbox-badge" style="display:none;margin-left:auto;background:var(--danger);
+              color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:2px 7px">0</span>
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Mi cuenta</div>
+          <div class="nav-item" onclick="showPage('mfa-settings')" id="nav-mfa-settings">
+            <span class="icon">🔐</span> Seguridad MFA
+          </div>
+          <div class="nav-item" onclick="showPage('theme-settings')" id="nav-theme-settings">
+            <span class="icon">🎨</span> Apariencia
           </div>
         </div>
 
@@ -1003,7 +1405,7 @@
               <table id="users-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>Clave</th>
                     <th>Correo</th>
                     <th>Nombre</th>
                     <th>Rol</th>
@@ -1061,6 +1463,267 @@
               <div class="empty-state">
                 <div class="spinner"></div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Seguridad MFA ─────────────────────────────────────────────── -->
+        <!-- ── PÁGINA CORREOS ──────────────────────────────────────────── -->
+        <div class="page" id="page-messages">
+          <div class="page-header">
+            <div>
+              <h1>Correos</h1>
+              <p>Mensajería interna firmada digitalmente</p>
+            </div>
+            <button class="btn-primary" onclick="openComposeModal()">+ Redactar</button>
+          </div>
+
+          <!-- Pestañas Recibidos / Enviados -->
+          <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px">
+            <button id="tab-inbox" onclick="switchMailTab('inbox')"
+              style="background:none;border:none;color:var(--accent);padding:9px 18px;
+                     font-size:13px;font-weight:600;border-bottom:2px solid var(--accent);cursor:pointer">
+              Recibidos
+            </button>
+            <button id="tab-sent" onclick="switchMailTab('sent')"
+              style="background:none;border:none;color:var(--muted);padding:9px 18px;
+                     font-size:13px;cursor:pointer;border-bottom:2px solid transparent">
+              Enviados
+            </button>
+          </div>
+
+          <!-- Lista de mensajes -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div id="messages-list" style="min-height:200px"></div>
+          </div>
+
+          <!-- Detalle de mensaje -->
+          <div id="message-detail-wrap" style="display:none;margin-top:20px">
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+                <div>
+                  <div id="msg-detail-subject" style="font-size:18px;font-weight:600;margin-bottom:6px"></div>
+                  <div id="msg-detail-meta" style="font-size:12px;color:var(--muted)"></div>
+                </div>
+                <div style="display:flex;gap:8px;flex-shrink:0">
+                  <button id="btn-verify-sig" class="btn-sm btn-accent" onclick="verifySignature()"
+                    style="display:none">Verificar firma</button>
+                  <button class="btn-sm btn-ghost" onclick="closeMessageDetail()">Cerrar</button>
+                </div>
+              </div>
+              <div id="msg-detail-body"
+                style="background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                       padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;
+                       word-break:break-word;min-height:80px"></div>
+              <!-- Adjuntos del mensaje -->
+              <div id="msg-detail-attachments" style="display:none;margin-top:12px">
+                <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">Archivos adjuntos</div>
+                <div id="msg-attachments-list" class="attach-list"></div>
+              </div>
+              <!-- Resultado de verificación -->
+              <div id="msg-verify-result" style="display:none;margin-top:16px;padding:14px 18px;
+                border-radius:8px;font-size:13px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page" id="page-mfa-settings">
+          <div class="page-header">
+            <div>
+              <h1>Seguridad MFA</h1>
+              <p>Autenticación de dos factores para tu cuenta</p>
+            </div>
+          </div>
+
+          <div class="card" style="max-width:520px;">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <h3>Autenticación TOTP</h3>
+              <span id="mfa-status-badge" class="mfa-badge off">● Desactivado</span>
+            </div>
+            <div style="padding:0 20px 20px;">
+              <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">
+                Usa Google Authenticator, Authy u otra app compatible para generar códigos de verificación cada 30 segundos.
+              </p>
+
+              <!-- Estado: MFA desactivado → mostrar flujo de activación -->
+              <div id="mfa-setup-section">
+                <button class="btn-save" onclick="startMFASetup()" id="btn-start-mfa-setup">Activar MFA</button>
+
+                <!-- Paso 1: mostrar QR -->
+                <div id="mfa-setup-step1" style="display:none;margin-top:20px;">
+                  <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+                    Escanea este código QR con tu aplicación autenticadora o ingresa el código manualmente.
+                  </p>
+                  <div class="mfa-qr-box">
+                    <div id="qrcode"></div>
+                    <p class="mfa-secret-label">Clave manual: <strong id="mfa-secret-display"></strong></p>
+                  </div>
+                  <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+                    Una vez configurada la app, ingresa el código de 6 dígitos para confirmar:
+                  </p>
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <input type="text" id="mfa-confirm-code" maxlength="6" inputmode="numeric"
+                      placeholder="000000"
+                      style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:18px;text-align:center;letter-spacing:6px;outline:none;" />
+                    <button class="btn-save" onclick="confirmMFASetup()">Confirmar</button>
+                  </div>
+                  <div id="mfa-setup-error" class="login-error" style="margin-top:10px;"></div>
+                </div>
+              </div>
+
+              <!-- Estado: MFA activado → mostrar opción de desactivar -->
+              <div id="mfa-disable-section" style="display:none;">
+                <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+                  MFA está activo. Para desactivarlo ingresa un código de tu app autenticadora.
+                </p>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <input type="text" id="mfa-disable-code" maxlength="6" inputmode="numeric"
+                    placeholder="000000"
+                    style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:18px;text-align:center;letter-spacing:6px;outline:none;" />
+                  <button style="background:var(--danger);color:#fff;font-size:13px;font-weight:600;padding:9px 18px;border-radius:8px;" onclick="disableMFA()">Desactivar</button>
+                </div>
+                <div id="mfa-disable-error" class="login-error" style="margin-top:10px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Clave privada para login criptográfico ── -->
+          <div class="card" style="max-width:520px;margin-top:20px;" id="card-privkey-download">
+            <div class="card-header">
+              <h3>Clave criptográfica</h3>
+            </div>
+            <div style="padding:0 20px 20px;">
+              <p style="color:var(--muted);font-size:13px;margin-bottom:16px;">
+                Descarga tu clave privada en formato PEM para poder iniciar sesión
+                presentando la clave en lugar de tu contraseña. Guárdala en un lugar seguro —
+                quien tenga el archivo puede autenticarse como tú.
+              </p>
+              <button class="btn-save" onclick="downloadPrivateKey()">Descargar clave privada (.pem)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Apariencia / Temas ─────────────────────────────────────────── -->
+        <div class="page" id="page-theme-settings">
+          <div class="page-header">
+            <div>
+              <h1>Apariencia</h1>
+              <p>Personaliza los colores de la interfaz</p>
+            </div>
+          </div>
+
+          <div class="card" style="max-width:600px;">
+            <div class="card-header"><h3>Configuración de tema</h3></div>
+            <div style="padding:0 20px 24px;">
+
+              <!-- Pestañas -->
+              <div class="theme-tabs">
+                <button class="theme-tab active" onclick="switchThemeTab('simple')">Sencilla</button>
+                <button class="theme-tab" onclick="switchThemeTab('advanced')">Avanzada</button>
+                <button class="theme-tab" onclick="switchThemeTab('presets')">Presets</button>
+              </div>
+
+              <!-- ── Pestaña Sencilla ── -->
+              <div class="theme-tab-panel active" id="theme-panel-simple">
+                <div class="color-row">
+                  <div><div class="color-row-label">Fondo principal</div><div class="color-row-sub">Color de fondo de toda la app</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-bg"></span>
+                    <input type="color" id="pick-bg" oninput="livePreview('--bg', this.value, 'hex-bg')" onchange="livePreview('--bg', this.value, 'hex-bg')" />
+                  </div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Fondo de tarjetas</div><div class="color-row-sub">Sidebars, modales y paneles</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-surface"></span>
+                    <input type="color" id="pick-surface" oninput="livePreview('--surface', this.value, 'hex-surface')" onchange="livePreview('--surface', this.value, 'hex-surface')" />
+                  </div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Color de acento</div><div class="color-row-sub">Botones principales, links y highlights</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-accent"></span>
+                    <input type="color" id="pick-accent" oninput="livePreview('--accent', this.value, 'hex-accent')" onchange="livePreview('--accent', this.value, 'hex-accent')" />
+                  </div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Texto principal</div><div class="color-row-sub">Color del texto en toda la interfaz</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-text"></span>
+                    <input type="color" id="pick-text" oninput="livePreview('--text', this.value, 'hex-text')" onchange="livePreview('--text', this.value, 'hex-text')" />
+                  </div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Bordes</div><div class="color-row-sub">Líneas divisorias y contornos</div></div>
+                  <div class="color-picker-wrap">
+                    <span class="color-hex" id="hex-border"></span>
+                    <input type="color" id="pick-border" oninput="livePreview('--border', this.value, 'hex-border')" onchange="livePreview('--border', this.value, 'hex-border')" />
+                  </div>
+                </div>
+                <div class="theme-actions">
+                  <button class="btn-reset-theme" onclick="applyPreset('default')">Restablecer</button>
+                  <button class="btn-save" onclick="saveTheme()">Guardar tema</button>
+                </div>
+              </div>
+
+              <!-- ── Pestaña Avanzada ── -->
+              <div class="theme-tab-panel" id="theme-panel-advanced">
+                <div class="color-row">
+                  <div><div class="color-row-label">Fondo principal</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-bg"></span><input type="color" id="apick-bg" oninput="livePreview('--bg', this.value, 'ahex-bg')" onchange="livePreview('--bg', this.value, 'ahex-bg')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Fondo de tarjetas</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-surface"></span><input type="color" id="apick-surface" oninput="livePreview('--surface', this.value, 'ahex-surface')" onchange="livePreview('--surface', this.value, 'ahex-surface')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Bordes</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-border"></span><input type="color" id="apick-border" oninput="livePreview('--border', this.value, 'ahex-border')" onchange="livePreview('--border', this.value, 'ahex-border')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Acento principal</div><div class="color-row-sub">Botones, links, nav activo</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-accent"></span><input type="color" id="apick-accent" oninput="livePreview('--accent', this.value, 'ahex-accent')" onchange="livePreview('--accent', this.value, 'ahex-accent')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Acento secundario</div><div class="color-row-sub">Hover de botones, gradientes</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-accent2"></span><input type="color" id="apick-accent2" oninput="livePreview('--accent2', this.value, 'ahex-accent2')" onchange="livePreview('--accent2', this.value, 'ahex-accent2')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Texto principal</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-text"></span><input type="color" id="apick-text" oninput="livePreview('--text', this.value, 'ahex-text')" onchange="livePreview('--text', this.value, 'ahex-text')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Texto secundario</div><div class="color-row-sub">Labels, subtítulos, texto muted</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-muted"></span><input type="color" id="apick-muted" oninput="livePreview('--muted', this.value, 'ahex-muted')" onchange="livePreview('--muted', this.value, 'ahex-muted')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Peligro / Error</div><div class="color-row-sub">Alertas, baja de usuarios, errores</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-danger"></span><input type="color" id="apick-danger" oninput="livePreview('--danger', this.value, 'ahex-danger')" onchange="livePreview('--danger', this.value, 'ahex-danger')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Éxito</div><div class="color-row-sub">Confirmaciones, estados activos</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-success"></span><input type="color" id="apick-success" oninput="livePreview('--success', this.value, 'ahex-success')" onchange="livePreview('--success', this.value, 'ahex-success')" /></div>
+                </div>
+                <div class="color-row">
+                  <div><div class="color-row-label">Advertencia</div><div class="color-row-sub">Certificados próximos a vencer, avisos</div></div>
+                  <div class="color-picker-wrap"><span class="color-hex" id="ahex-warning"></span><input type="color" id="apick-warning" oninput="livePreview('--warning', this.value, 'ahex-warning')" onchange="livePreview('--warning', this.value, 'ahex-warning')" /></div>
+                </div>
+                <div class="theme-actions">
+                  <button class="btn-reset-theme" onclick="applyPreset('default')">Restablecer</button>
+                  <button class="btn-save" onclick="saveTheme()">Guardar tema</button>
+                </div>
+              </div>
+
+              <!-- ── Pestaña Presets ── -->
+              <div class="theme-tab-panel" id="theme-panel-presets">
+                <div class="preset-grid" id="preset-grid">
+                  <!-- generado por JS -->
+                </div>
+                <div class="theme-actions">
+                  <button class="btn-save" onclick="saveTheme()">Aplicar preset</button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1175,6 +1838,138 @@
     </div>
   </div>
 
+  <!-- Modal: Redactar mensaje -->
+  <div class="modal-overlay" id="modal-compose">
+    <div class="modal" style="max-width:580px">
+      <h2>Redactar mensaje</h2>
+
+      <!-- Selector tipo destinatario -->
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <button id="compose-tab-internal" onclick="switchComposeTab('internal')"
+          style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--accent);
+                 background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          Usuario del sistema
+        </button>
+        <button id="compose-tab-external" onclick="switchComposeTab('external')"
+          style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);
+                 background:transparent;color:var(--muted);font-size:13px;cursor:pointer">
+          Correo externo
+        </button>
+      </div>
+
+      <!-- Destinatario interno -->
+      <div id="compose-internal-fields">
+        <div class="form-group">
+          <label>Destinatario</label>
+          <select id="compose-recipient-id"
+            style="width:100%;background:var(--bg);border:1.5px solid var(--border);
+                   border-radius:8px;padding:10px;color:var(--text);font-size:13px;outline:none">
+            <option value="">Selecciona un colaborador...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Destinatario externo -->
+      <div id="compose-external-fields" style="display:none">
+        <div class="form-group">
+          <label>Email del destinatario externo</label>
+          <input type="email" id="compose-ext-email" placeholder="ejemplo@dominio.com"/>
+        </div>
+        <div id="compose-ext-link-wrap" style="display:none;margin-bottom:12px;
+          padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
+            Modo desarrollo — enlace de acceso (copia y abre en el navegador):
+          </div>
+          <div id="compose-ext-link" style="font-size:12px;color:var(--accent);word-break:break-all"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Asunto</label>
+        <input type="text" id="compose-subject" placeholder="Asunto del mensaje"/>
+      </div>
+      <div class="form-group">
+        <label>Mensaje</label>
+        <textarea id="compose-body" rows="6" placeholder="Escribe tu mensaje..."
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+                 padding:10px;color:var(--text);font-family:var(--font-body);font-size:13px;
+                 resize:vertical;outline:none"></textarea>
+      </div>
+
+      <!-- Adjuntos -->
+      <div class="form-group" style="margin-bottom:4px">
+        <label>Adjuntos</label>
+        <div id="compose-attach-list" class="attach-list"></div>
+        <button type="button" class="attach-add-btn" onclick="document.getElementById('compose-file-input').click()">
+          📎 Agregar archivo
+        </button>
+        <input type="file" id="compose-file-input" style="display:none" multiple onchange="onAttachFiles(this)"/>
+        <div class="attach-limit">Máx. 2 MB en total por mensaje</div>
+      </div>
+
+      <div id="compose-error" class="login-error" style="margin-top:8px;"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeComposeModal()">Cancelar</button>
+        <button class="btn-save" id="btn-send-msg" onclick="sendMessage()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Verificar firma -->
+  <div class="modal-overlay" id="modal-verify-sig">
+    <div class="modal" style="max-width:560px">
+      <h2>Verificar firma digital</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+        Selecciona la identidad que crees que firmó este mensaje.
+        El sistema comparará la firma contra su clave pública.
+      </p>
+      <div id="verify-candidates-list"
+        style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:340px;overflow-y:auto;margin-bottom:16px">
+        <div style="color:var(--muted);font-size:13px;padding:12px">Cargando identidades...</div>
+      </div>
+      <!-- Resultado -->
+      <div id="verify-modal-result" style="display:none;padding:14px 18px;border-radius:8px;font-size:13px;margin-bottom:16px"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeVerifyModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Firmar mensaje con S/MIME -->
+  <div class="modal-overlay" id="modal-smime-sign">
+    <div class="modal" style="max-width:600px">
+      <h2>Firmar mensaje S/MIME</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+        Firma digitalmente el contenido con tu clave privada RSA. El resultado es un mensaje
+        <code style="color:var(--accent)">multipart/signed</code> listo para enviar por correo.
+      </p>
+      <div class="form-group">
+        <label>Contenido del mensaje</label>
+        <textarea id="smime-content" rows="5" placeholder="Escribe el contenido del correo a firmar..."
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+                 padding:10px;color:var(--text);font-family:var(--font-body);font-size:13px;resize:vertical;outline:none"></textarea>
+      </div>
+      <div id="smime-result-wrap" style="display:none;margin-top:16px">
+        <label style="display:block;margin-bottom:6px;font-size:12px;color:var(--muted)">
+          Mensaje firmado (S/MIME multipart/signed)
+        </label>
+        <textarea id="smime-result" rows="9" readonly
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+                 padding:10px;color:var(--accent);font-family:monospace;font-size:11px;resize:vertical;outline:none"></textarea>
+        <button onclick="copySMimeResult()"
+          style="margin-top:8px;background:transparent;border:1px solid var(--border);color:var(--muted);
+                 border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer">
+          Copiar al portapapeles
+        </button>
+      </div>
+      <div id="smime-sign-error" class="login-error" style="margin-top:8px;"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeSMimeSignModal()">Cancelar</button>
+        <button class="btn-save" id="btn-smime-sign" onclick="signSMime()">Firmar mensaje</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div id="toast"></div>
 
@@ -1250,6 +2045,12 @@
         return;
       }
 
+      // Si el servidor pide segundo factor, redirigir a pantalla MFA
+      if (data.mfa_required) {
+        showMFAScreen(data.temp_token);
+        return;
+      }
+
       State.token = data.access_token;
 
       const base64Url = State.token.split('.')[1];
@@ -1270,6 +2071,7 @@
       State.user = null;
       localStorage.removeItem("sgi_token");
       localStorage.removeItem("sgi_user");
+      applyThemeToDOM(PRESETS.default);
       document.getElementById("app").style.display = "none";
       document.getElementById("login-screen").style.display = "flex";
     }
@@ -1314,10 +2116,20 @@
         document.getElementById("nav-certs").style.display = "none";
       }
 
+      // El botón de clave privada solo aplica a Admin y Coordinator
+      const privKeyCard = document.getElementById("card-privkey-download");
+      if (privKeyCard) {
+        privKeyCard.style.display = (u.rol === "Admin" || u.rol === "Coordinator") ? "block" : "none";
+      }
+
+      // Cargar badge de mensajes no leídos al iniciar sesión
+      updateInboxBadge();
+
       document.getElementById("login-pass").addEventListener("keydown", e => {
         if (e.key === "Enter") doLogin();
       });
 
+      applyThemeToDOM(getCurrentTheme());
       loadDashboard();
     }
 
@@ -1332,6 +2144,9 @@
       if (name === "certs") loadCerts();
       if (name === "audit") loadAudit();
       if (name === "dashboard") loadDashboard();
+      if (name === "mfa-settings") loadMFAStatus();
+      if (name === "theme-settings") initThemePage();
+      if (name === "messages") loadMessages();
     }
 
     async function loadDashboard() {
@@ -1359,9 +2174,10 @@
         recent.innerHTML = last6.map(e => `
       <div class="audit-entry">
         <span class="audit-time">${formatDate(e.fecha_evento)}</span>
+        <span class="audit-ticket">${e.ticket || '—'}</span>
         <span class="audit-action">${e.accion}</span>
-        <span class="audit-actor">Actor ID: ${e.actor_id}</span>
-        <span class="audit-detail">Target: ${e.identity_id || '-'} ${e.detalles ? '· ' + e.detalles : ''}</span>
+        <span class="audit-actor">Actor: ${e.actor_codigo || e.actor_id || '—'}</span>
+        <span class="audit-detail">${e.identity_codigo || e.identity_id || '-'} ${e.detalles ? '· ' + e.detalles : ''}</span>
       </div>`).join("");
       } else {
         recent.innerHTML = `<div class="empty-state"><div class="emoji">📋</div><p>Sin actividad registrada</p></div>`;
@@ -1385,6 +2201,7 @@
     function filterUsers() {
       const q = document.getElementById("user-search").value.toLowerCase();
       const filtered = State.users.filter(u =>
+        (u.codigo || '').toLowerCase().includes(q) ||
         (u.nombre || '').toLowerCase().includes(q) ||
         (u.email || '').toLowerCase().includes(q) ||
         (u.rol || '').toLowerCase().includes(q)
@@ -1425,8 +2242,8 @@
               const hasCert = targetUserLevel <= 2;
               actions = `
             <div class="action-group">
-              ${hasCert ? `<button class="btn-sm btn-danger" onclick="revokeUser(${u.id})">Revocar</button>` : ''}
-              <button class="btn-sm btn-baja" onclick="deleteUser(${u.id})">Baja</button>
+              ${hasCert ? `<button class="btn-sm btn-danger" onclick="revokeUser(${u.id},'${u.codigo || u.id}')">Revocar</button>` : ''}
+              <button class="btn-sm btn-baja" onclick="deleteUser(${u.id},'${u.codigo || u.id}')">Baja</button>
             </div>`;
             }
           }
@@ -1435,7 +2252,7 @@
 
         return `
       <tr>
-        <td style="color:var(--muted);font-family:monospace;font-size:12px">${u.id}</td>
+        <td style="font-family:monospace;font-size:13px;font-weight:700;color:var(--accent)">${u.codigo || u.id}</td>
         <td><strong>${u.email}</strong></td>
         <td>${u.nombre}</td>
         <td>${levelBadge}</td>
@@ -1446,16 +2263,16 @@
       }).join("");
     }
 
-    async function revokeUser(id) {
-      if (!confirm(`¿Revocar acceso del ID "${id}"?`)) return;
+    async function revokeUser(id, codigo) {
+      if (!confirm(`¿Revocar acceso de ${codigo || id}?`)) return;
       const { ok, data } = await api(`/api/v1/identities/${id}/revocar`, "PUT", { estado: "REVOCADO" });
       if (ok) { showToast(data.message, "success"); loadUsers(); }
       else showToast(data.detail || "Error", "error");
     }
 
-    async function deleteUser(id) {
-      if (!confirm(`¿Dar de BAJA DEFINITIVA al ID "${id}"? Esta acción borrará el registro.`)) return;
-      const { ok, data } = await api(`/api/v1/identities/${id}/baja`, "DELETE");
+    async function deleteUser(id, codigo) {
+      if (!confirm(`¿Dar de BAJA DEFINITIVA a ${codigo || id}? Esta acción borrará el registro.`)) return;
+      const { ok, data } = await api(`/api/v1/identities/${id}/baja`, "DELETE", { consentimiento_baja: true });
       if (ok) { showToast(data.message, "success"); loadUsers(); }
       else showToast(data.detail || "Error", "error");
     }
@@ -1522,6 +2339,7 @@
         cert_days_valid: (rol === "Admin" || rol === "Coordinator")
           ? certAmountToDays()
           : 365,
+        consentimiento_alta: true,  // El formulario representa el consentimiento explícito ARCO
       };
 
       if (!payload.nombre || !payload.password || !payload.email || !payload.rol) {
@@ -1536,7 +2354,11 @@
         showToast(`Colaborador "${payload.email}" dado de alta correctamente`, "success");
         loadUsers();
       } else {
-        errEl.textContent = data.detail || "Error al crear usuario.";
+        // data.detail puede ser string (error simple) o array (errores de validación Pydantic)
+        const detail = data.detail;
+        errEl.textContent = Array.isArray(detail)
+          ? detail.map(function(e) { return e.msg; }).join(", ")
+          : (detail || "Error al crear usuario.");
         errEl.classList.add("visible");
       }
     }
@@ -1600,11 +2422,17 @@
         const canExtend = currentUserLevel < targetLevel && c.estado === "ACTIVO";
         const canRevalidate = currentUserLevel === 1 && c.estado === "REVOCADO"; // Solo Admin
 
+        // S/MIME: solo el propio titular puede firmar con su identidad
+        const canSign = c.estado === "ACTIVO" && c.id === State.user.id;
+
         const extendBtn = canExtend
           ? `<button class="btn-sm btn-accent" onclick="openExtendModal(${c.id})">Extender</button>`
           : '';
         const revalidateBtn = canRevalidate
           ? `<button class="btn-sm btn-success" onclick="revalidateCert(${c.id})">Revalidar</button>`
+          : '';
+        const signBtn = canSign
+          ? `<button class="btn-sm btn-accent" onclick="openSMimeSignModal(${c.id})" title="Firmar mensaje con tu clave RSA">Firmar S/MIME</button>`
           : '';
 
         return `
@@ -1620,6 +2448,7 @@
             <button class="btn-sm btn-ghost" onclick="downloadCert(${c.id})">Descargar</button>
             ${extendBtn}
             ${revalidateBtn}
+            ${signBtn}
           </div>
         </td>
       </tr>`;
@@ -1683,9 +2512,10 @@
       el.innerHTML = [...data].reverse().map(e => `
     <div class="audit-entry">
       <span class="audit-time">${formatDate(e.fecha_evento)}</span>
+      <span class="audit-ticket">${e.ticket || '—'}</span>
       <span class="audit-action">${e.accion}</span>
-      <span class="audit-actor">Actor ID: ${e.actor_id}</span>
-      <span class="audit-detail">Target: ${e.identity_id || '-'} ${e.detalles ? ' · ' + e.detalles : ''}</span>
+      <span class="audit-actor">Actor: ${e.actor_id || '—'}</span>
+      <span class="audit-detail">${e.identity_codigo || e.identity_id || '-'} ${e.detalles ? ' · ' + e.detalles : ''}</span>
     </div>`).join("");
     }
 
@@ -1765,6 +2595,926 @@
       }
     }
 
+    // ── MFA: login segundo factor ────────────────────────────────────────────
+
+    let _mfaTempToken = null;
+
+    function showMFAScreen(tempToken) {
+      _mfaTempToken = tempToken;
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("mfa-screen").classList.add("active");
+      document.getElementById("mfa-error").classList.remove("visible");
+      // Limpiar dígitos
+      document.querySelectorAll("#mfa-digits input").forEach(i => i.value = "");
+      document.querySelector("#mfa-digits input").focus();
+    }
+
+    function cancelMFA() {
+      _mfaTempToken = null;
+      document.getElementById("mfa-screen").classList.remove("active");
+      document.getElementById("login-screen").style.display = "flex";
+    }
+
+    function getMFACode() {
+      return Array.from(document.querySelectorAll("#mfa-digits input")).map(i => i.value).join("");
+    }
+
+    async function doMFAValidate() {
+      const code = getMFACode();
+      const errEl = document.getElementById("mfa-error");
+      const btn = document.getElementById("btn-mfa");
+      errEl.classList.remove("visible");
+      if (code.length !== 6) {
+        errEl.textContent = "Ingresa los 6 dígitos del código.";
+        errEl.classList.add("visible");
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Verificando…';
+      const res = await fetch(API + "/api/v1/auth/mfa/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ temp_token: _mfaTempToken, code })
+      });
+      const data = await res.json().catch(() => ({}));
+      btn.disabled = false;
+      btn.innerHTML = "Verificar";
+      if (!res.ok) {
+        errEl.textContent = data.detail || "Código inválido o sesión expirada.";
+        errEl.classList.add("visible");
+        document.querySelectorAll("#mfa-digits input").forEach(i => i.value = "");
+        document.querySelector("#mfa-digits input").focus();
+        return;
+      }
+      // Éxito: misma lógica que el login normal
+      document.getElementById("mfa-screen").classList.remove("active");
+      State.token = data.access_token;
+      const base64Url = State.token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jwtPayload = JSON.parse(decodeURIComponent(escape(window.atob(base64))));
+      State.user = { email: jwtPayload.sub, rol: jwtPayload.rol };
+      localStorage.setItem("sgi_token", data.access_token);
+      localStorage.setItem("sgi_user", JSON.stringify(State.user));
+      _mfaTempToken = null;
+      initApp();
+    }
+
+    // Navegación automática entre celdas de código MFA
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll("#mfa-digits input").forEach((input, idx, all) => {
+        input.addEventListener("input", () => {
+          input.value = input.value.replace(/[^0-9]/g, "").slice(-1);
+          if (input.value && idx < all.length - 1) all[idx + 1].focus();
+          if (idx === all.length - 1 && getMFACode().length === 6) doMFAValidate();
+        });
+        input.addEventListener("keydown", e => {
+          if (e.key === "Backspace" && !input.value && idx > 0) all[idx - 1].focus();
+        });
+      });
+    });
+
+    // ── Login por clave criptográfica (challenge-response) ──────────────────
+
+    let _klChallengeId = null;
+    let _klChallengeB64 = null;
+
+    function toggleKeyLogin() {
+      const card = document.getElementById("key-login-card");
+      card.style.display = card.style.display === "none" ? "block" : "none";
+      if (card.style.display === "block") {
+        // Pre-rellenar el email desde el campo de login normal
+        const emailVal = document.getElementById("login-user").value.trim();
+        if (emailVal) document.getElementById("kl-email").value = emailVal;
+      }
+    }
+
+    async function klRequestChallenge() {
+      const email = document.getElementById("kl-email").value.trim().toLowerCase();
+      const errEl = document.getElementById("key-login-error");
+      errEl.classList.remove("visible");
+      if (!email) {
+        errEl.textContent = "Ingresa tu correo electrónico.";
+        errEl.classList.add("visible");
+        return;
+      }
+      const res = await fetch(API + "/api/v1/auth/challenge?email=" + encodeURIComponent(email));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        errEl.textContent = data.detail || "Error al solicitar el desafío.";
+        errEl.classList.add("visible");
+        return;
+      }
+      _klChallengeId = data.challenge_id;
+      _klChallengeB64 = data.challenge_b64;
+      // Mostrar vista previa del desafío (primeros 32 caracteres)
+      document.getElementById("kl-challenge-preview").textContent =
+        "Challenge: " + data.challenge_b64.substring(0, 32) + "…  (expira en " + data.expires_in + "s)";
+      document.getElementById("kl-step1").classList.remove("active");
+      document.getElementById("kl-step2").classList.add("active");
+    }
+
+    function klReset() {
+      _klChallengeId = null;
+      _klChallengeB64 = null;
+      document.getElementById("kl-step2").classList.remove("active");
+      document.getElementById("kl-step1").classList.add("active");
+      document.getElementById("key-login-error").classList.remove("visible");
+      document.getElementById("kl-pem-file").value = "";
+    }
+
+    function _pemToDer(pem) {
+      // Extrae los bytes DER de un PEM, eliminando cabeceras y espacios
+      const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+      const bin = atob(b64);
+      return Uint8Array.from(bin, c => c.charCodeAt(0));
+    }
+
+    async function klAuthenticate() {
+      const errEl = document.getElementById("key-login-error");
+      errEl.classList.remove("visible");
+      const email = document.getElementById("kl-email").value.trim().toLowerCase();
+      const fileInput = document.getElementById("kl-pem-file");
+      if (!fileInput.files.length) {
+        errEl.textContent = "Selecciona tu archivo de clave privada (.pem).";
+        errEl.classList.add("visible");
+        return;
+      }
+      if (!_klChallengeId || !_klChallengeB64) {
+        errEl.textContent = "No hay desafío activo. Solicita uno nuevo.";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      let pemText;
+      try {
+        pemText = await fileInput.files[0].text();
+      } catch (e) {
+        errEl.textContent = "No se pudo leer el archivo.";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      let signature_b64;
+      try {
+        const der = _pemToDer(pemText);
+        const privKey = await crypto.subtle.importKey(
+          "pkcs8", der,
+          { name: "RSA-PSS", hash: "SHA-256" },
+          false,
+          ["sign"]
+        );
+        const challengeBytes = Uint8Array.from(atob(_klChallengeB64), c => c.charCodeAt(0));
+        const sigBuf = await crypto.subtle.sign(
+          { name: "RSA-PSS", saltLength: 32 },
+          privKey,
+          challengeBytes
+        );
+        // Convertir sin spread operator para evitar límites de stack en firmas grandes
+        const sigBytes = new Uint8Array(sigBuf);
+        let sigBin = "";
+        for (let i = 0; i < sigBytes.length; i++) sigBin += String.fromCharCode(sigBytes[i]);
+        signature_b64 = btoa(sigBin);
+      } catch (e) {
+        errEl.textContent = "Error al firmar. Verifica que el archivo es una clave privada PKCS8 válida (.pem).";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      const res = await fetch(API + "/api/v1/auth/key-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, challenge_id: _klChallengeId, signature_b64 })
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        errEl.textContent = data.detail || "Autenticación fallida.";
+        errEl.classList.add("visible");
+        klReset();
+        return;
+      }
+
+      // Éxito: misma lógica que el login normal
+      State.token = data.access_token;
+      const base64Url = State.token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jwtPayload = JSON.parse(decodeURIComponent(escape(window.atob(base64))));
+      State.user = { email: jwtPayload.sub, rol: jwtPayload.rol };
+      localStorage.setItem("sgi_token", data.access_token);
+      localStorage.setItem("sgi_user", JSON.stringify(State.user));
+      klReset();
+      initApp();
+    }
+
+    async function downloadPrivateKey() {
+      const res = await fetch(API + "/api/v1/auth/my-private-key", {
+        headers: { Authorization: "Bearer " + State.token }
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.detail || "No se pudo descargar la clave privada.");
+        return;
+      }
+      const pem = await res.text();
+      const blob = new Blob([pem], { type: "application/x-pem-file" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = State.user.email.replace("@", "_at_") + "_private_key.pem";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // ── MFA: configuración desde el panel ───────────────────────────────────
+
+    let _mfaProvisionSecret = null;
+
+    async function loadMFAStatus() {
+      const { ok, data } = await api("/api/v1/auth/mfa/status");
+      if (!ok) return;
+      const enabled = data.mfa_enabled;
+      const badge = document.getElementById("mfa-status-badge");
+      badge.textContent = enabled ? "● Activado" : "● Desactivado";
+      badge.className = "mfa-badge " + (enabled ? "on" : "off");
+      document.getElementById("mfa-setup-section").style.display = enabled ? "none" : "block";
+      document.getElementById("mfa-disable-section").style.display = enabled ? "block" : "none";
+      // Resetear formulario de setup
+      document.getElementById("mfa-setup-step1").style.display = "none";
+      document.getElementById("btn-start-mfa-setup").style.display = "inline-block";
+      _mfaProvisionSecret = null;
+    }
+
+    async function startMFASetup() {
+      const { ok, data } = await api("/api/v1/auth/mfa/setup", "POST");
+      if (!ok) { showToast(data.detail || "Error al iniciar MFA", "error"); return; }
+      _mfaProvisionSecret = data.secret;
+      document.getElementById("mfa-secret-display").textContent = data.secret;
+      document.getElementById("btn-start-mfa-setup").style.display = "none";
+      document.getElementById("mfa-setup-step1").style.display = "block";
+      // Generar QR usando API externa (no requiere librería JS)
+      const qrDiv = document.getElementById("qrcode");
+      qrDiv.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(data.uri);
+      img.alt = "Código QR MFA";
+      img.style.borderRadius = "8px";
+      qrDiv.appendChild(img);
+      document.getElementById("mfa-confirm-code").focus();
+    }
+
+    async function confirmMFASetup() {
+      const code = document.getElementById("mfa-confirm-code").value.trim();
+      const errEl = document.getElementById("mfa-setup-error");
+      errEl.classList.remove("visible");
+      if (code.length !== 6) {
+        errEl.textContent = "El código debe tener 6 dígitos.";
+        errEl.classList.add("visible");
+        return;
+      }
+      const { ok, data } = await api("/api/v1/auth/mfa/confirm-setup", "POST", { secret: _mfaProvisionSecret, code });
+      if (!ok) {
+        errEl.textContent = data.detail || "Error al confirmar MFA.";
+        errEl.classList.add("visible");
+        return;
+      }
+      showToast("MFA activado correctamente", "success");
+      document.getElementById("mfa-confirm-code").value = "";
+      loadMFAStatus();
+    }
+
+    async function disableMFA() {
+      const code = document.getElementById("mfa-disable-code").value.trim();
+      const errEl = document.getElementById("mfa-disable-error");
+      errEl.classList.remove("visible");
+      if (code.length !== 6) {
+        errEl.textContent = "El código debe tener 6 dígitos.";
+        errEl.classList.add("visible");
+        return;
+      }
+      const { ok, data } = await api("/api/v1/auth/mfa/disable", "POST", { code });
+      if (!ok) {
+        errEl.textContent = data.detail || "Error al desactivar MFA.";
+        errEl.classList.add("visible");
+        return;
+      }
+      showToast("MFA desactivado", "success");
+      document.getElementById("mfa-disable-code").value = "";
+      loadMFAStatus();
+    }
+
+    // ── Sistema de Temas ─────────────────────────────────────────────────────
+
+    const THEME_VARS = ['--bg','--surface','--border','--accent','--accent2','--text','--muted','--danger','--success','--warning'];
+
+    const PRESETS = {
+      default: {
+        name: 'Por defecto', desc: 'Tema original del sistema',
+        '--bg': '#0f1117', '--surface': '#181c27', '--border': '#252a38',
+        '--accent': '#e8a045', '--accent2': '#c46a1f', '--text': '#e4e6ed',
+        '--muted': '#7a8099', '--danger': '#d94f4f', '--success': '#4fb87a', '--warning': '#d9a83a'
+      },
+      dark: {
+        name: 'Oscuro', desc: 'Tonos negros profundos',
+        '--bg': '#000000', '--surface': '#0d0d0d', '--border': '#1c1c1c',
+        '--accent': '#e8a045', '--accent2': '#c46a1f', '--text': '#ffffff',
+        '--muted': '#4a4a4a', '--danger': '#d94f4f', '--success': '#4fb87a', '--warning': '#d9a83a'
+      },
+      light: {
+        name: 'Claro', desc: 'Portal clásico de fondo blanco',
+        '--bg': '#f0f2f5', '--surface': '#ffffff', '--border': '#dde1ea',
+        '--accent': '#1a73e8', '--accent2': '#1557b0', '--text': '#1a1a2e',
+        '--muted': '#6b7280', '--danger': '#dc2626', '--success': '#16a34a', '--warning': '#d97706'
+      },
+      monarca: {
+        name: 'Casa Monarca', desc: 'Blanco con tonos naranjas institucionales',
+        '--bg': '#ffffff', '--surface': '#fff8f0', '--border': '#fde0b8',
+        '--accent': '#e8a045', '--accent2': '#c46a1f', '--text': '#1a1208',
+        '--muted': '#8a6a3a', '--danger': '#d94f4f', '--success': '#4fb87a', '--warning': '#c46a1f'
+      }
+    };
+
+    function getCurrentTheme() {
+      const email = State.user ? State.user.email : null;
+      const key = email ? 'sgi_theme_' + email : null;
+      const saved = key ? localStorage.getItem(key) : null;
+      return saved ? JSON.parse(saved) : { ...PRESETS.default };
+    }
+
+    function applyThemeToDOM(theme) {
+      const root = document.documentElement.style;
+      THEME_VARS.forEach(v => { if (theme[v]) root.setProperty(v, theme[v]); });
+    }
+
+    function saveTheme() {
+      const current = {};
+      THEME_VARS.forEach(v => {
+        current[v] = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+      });
+      if (!State.user) return;
+      localStorage.setItem('sgi_theme_' + State.user.email, JSON.stringify(current));
+      showToast('Tema guardado correctamente', 'success');
+    }
+
+    function livePreview(varName, value, hexId) {
+      document.documentElement.style.setProperty(varName, value);
+      const el = document.getElementById(hexId);
+      if (el) el.textContent = value.toUpperCase();
+      // Sincronizar picker duplicado entre sencilla y avanzada
+      const map = {
+        '--bg': ['pick-bg','apick-bg'], '--surface': ['pick-surface','apick-surface'],
+        '--border': ['pick-border','apick-border'], '--accent': ['pick-accent','apick-accent'],
+        '--accent2': [null,'apick-accent2'], '--text': ['pick-text','apick-text'],
+        '--muted': [null,'apick-muted'], '--danger': [null,'apick-danger'],
+        '--success': [null,'apick-success'], '--warning': [null,'apick-warning']
+      };
+      (map[varName] || []).forEach(id => {
+        if (id) { const el = document.getElementById(id); if (el && el.value !== value) el.value = value; }
+      });
+    }
+
+    function applyPreset(key) {
+      const preset = PRESETS[key];
+      if (!preset) return;
+      THEME_VARS.forEach(v => { if (preset[v]) document.documentElement.style.setProperty(v, preset[v]); });
+      syncPickersFromDOM();
+      highlightSelectedPreset(key);
+    }
+
+    function syncPickersFromDOM() {
+      const style = getComputedStyle(document.documentElement);
+      const pickMap = {
+        '--bg':      [['pick-bg','hex-bg'],['apick-bg','ahex-bg']],
+        '--surface': [['pick-surface','hex-surface'],['apick-surface','ahex-surface']],
+        '--border':  [['pick-border','hex-border'],['apick-border','ahex-border']],
+        '--accent':  [['pick-accent','hex-accent'],['apick-accent','ahex-accent']],
+        '--accent2': [[null,null],['apick-accent2','ahex-accent2']],
+        '--text':    [['pick-text','hex-text'],['apick-text','ahex-text']],
+        '--muted':   [[null,null],['apick-muted','ahex-muted']],
+        '--danger':  [[null,null],['apick-danger','ahex-danger']],
+        '--success': [[null,null],['apick-success','ahex-success']],
+        '--warning': [[null,null],['apick-warning','ahex-warning']],
+      };
+      Object.entries(pickMap).forEach(([varName, pairs]) => {
+        const raw = style.getPropertyValue(varName).trim();
+        const hex = rgbToHex(raw) || raw;
+        pairs.forEach(([pickId, hexId]) => {
+          if (pickId) { const el = document.getElementById(pickId); if (el) el.value = hex; }
+          if (hexId)  { const el = document.getElementById(hexId);  if (el) el.textContent = hex.toUpperCase(); }
+        });
+      });
+    }
+
+    function rgbToHex(color) {
+      // Convierte "rgb(r,g,b)" a "#rrggbb"; si ya es hex lo devuelve tal cual
+      if (color.startsWith('#')) return color;
+      const m = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+      if (!m) return color;
+      return '#' + [m[1],m[2],m[3]].map(n => parseInt(n).toString(16).padStart(2,'0')).join('');
+    }
+
+    function highlightSelectedPreset(key) {
+      document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+      const card = document.getElementById('preset-' + key);
+      if (card) card.classList.add('selected');
+    }
+
+    function renderPresetGrid() {
+      const grid = document.getElementById('preset-grid');
+      grid.innerHTML = '';
+      Object.entries(PRESETS).forEach(([key, p]) => {
+        const swatches = ['--bg','--surface','--accent','--accent2','--text'].map(v =>
+          `<div class="preset-preview-col" style="background:${p[v]}"></div>`
+        ).join('');
+        const card = document.createElement('div');
+        card.className = 'preset-card';
+        card.id = 'preset-' + key;
+        card.onclick = () => { applyPreset(key); };
+        card.innerHTML = `<div class="preset-preview">${swatches}</div>
+          <div class="preset-info"><div class="preset-name">${p.name}</div><div class="preset-desc">${p.desc}</div></div>`;
+        grid.appendChild(card);
+      });
+      // Marcar el preset activo si coincide con alguno
+      const current = getCurrentTheme();
+      Object.keys(PRESETS).forEach(key => {
+        if (THEME_VARS.every(v => (PRESETS[key][v] || '') === (current[v] || ''))) highlightSelectedPreset(key);
+      });
+    }
+
+    function switchThemeTab(name) {
+      document.querySelectorAll('.theme-tab').forEach((t, i) => {
+        t.classList.toggle('active', ['simple','advanced','presets'][i] === name);
+      });
+      document.querySelectorAll('.theme-tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('theme-panel-' + name).classList.add('active');
+    }
+
+    function initThemePage() {
+      syncPickersFromDOM();
+      renderPresetGrid();
+    }
+
+    // ── CORREOS ───────────────────────────────────────────────────────────────
+
+    let mailTab = "inbox";          // "inbox" | "sent"
+    let composeTab = "internal";    // "internal" | "external"
+    let openMessageId = null;       // ID del mensaje abierto en detalle
+
+    // ── Carga y renderizado ───────────────────────────────────────────────────
+
+    async function loadMessages() {
+      const list = document.getElementById("messages-list");
+      list.innerHTML = '<div style="padding:24px;text-align:center"><span class="spinner"></span></div>';
+      closeMessageDetail();
+
+      const path = mailTab === "inbox" ? "/api/v1/messages/inbox" : "/api/v1/messages/sent";
+      const { ok, data } = await api(path);
+
+      if (!ok || !Array.isArray(data) || data.length === 0) {
+        list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">No hay mensajes.</div>';
+        updateInboxBadge();
+        return;
+      }
+
+      list.innerHTML = data.map(function(m) {
+        const unread = mailTab === "inbox" && !m.leido;
+        const fecha = m.fecha_envio ? m.fecha_envio.replace("T", " ").slice(0, 16) : "—";
+        const firmaBadge = m.tiene_firma
+          ? '<span style="font-size:10px;background:#4fb87a22;color:#4fb87a;border:1px solid #4fb87a44;border-radius:6px;padding:2px 7px;margin-left:8px">Firmado</span>'
+          : '';
+        const who = mailTab === "inbox"
+          ? (m.sender_nombre || m.sender_email || "Desconocido")
+          : (m.recipient_email_ext || "Usuario #" + m.recipient_id);
+        const label = mailTab === "inbox" ? "De" : "Para";
+
+        return '<div onclick="openMessage(' + m.id + ', ' + m.tiene_firma + ')" style="padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" '
+          + 'onmouseover="this.style.background=\'var(--border)\'" onmouseout="this.style.background=\'none\'">'
+          + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">'
+          + '<span style="font-size:13px;font-weight:' + (unread ? '700' : '400') + ';color:' + (unread ? 'var(--text)' : 'var(--muted)') + '">'
+          + label + ': ' + who + firmaBadge + '</span>'
+          + '<span style="font-size:11px;color:var(--muted)">' + fecha + '</span>'
+          + '</div>'
+          + '<div style="font-size:14px;font-weight:' + (unread ? '600' : '400') + '">' + m.subject + '</div>'
+          + '</div>';
+      }).join("");
+
+      updateInboxBadge();
+    }
+
+    function updateInboxBadge() {
+      // Actualiza el badge de no leídos en la barra lateral
+      api("/api/v1/messages/inbox").then(function(res) {
+        if (!res.ok || !Array.isArray(res.data)) return;
+        const unread = res.data.filter(function(m) { return !m.leido; }).length;
+        const badge = document.getElementById("inbox-badge");
+        if (unread > 0) {
+          badge.textContent = unread;
+          badge.style.display = "inline";
+        } else {
+          badge.style.display = "none";
+        }
+      });
+    }
+
+    function switchMailTab(tab) {
+      mailTab = tab;
+      document.getElementById("tab-inbox").style.color      = tab === "inbox" ? "var(--accent)" : "var(--muted)";
+      document.getElementById("tab-inbox").style.borderBottomColor  = tab === "inbox" ? "var(--accent)" : "transparent";
+      document.getElementById("tab-inbox").style.fontWeight  = tab === "inbox" ? "600" : "400";
+      document.getElementById("tab-sent").style.color       = tab === "sent" ? "var(--accent)" : "var(--muted)";
+      document.getElementById("tab-sent").style.borderBottomColor   = tab === "sent" ? "var(--accent)" : "transparent";
+      document.getElementById("tab-sent").style.fontWeight   = tab === "sent" ? "600" : "400";
+      loadMessages();
+    }
+
+    // ── Detalle de mensaje ────────────────────────────────────────────────────
+
+    // Guarda sender del mensaje abierto para el modal de verificación
+    let openMessageSender = null;
+
+    async function openMessage(id, tieneFirma) {
+      openMessageId = id;
+      const path = mailTab === "inbox" ? "/api/v1/messages/inbox" : "/api/v1/messages/sent";
+      const { ok, data } = await api(path);
+      if (!ok) return;
+      const msg = data.find(function(m) { return m.id === id; });
+      if (!msg) return;
+
+      // Guardar sender para el modal de verificación
+      openMessageSender = {
+        id:     msg.sender_id,
+        nombre: msg.sender_nombre || msg.sender_email || "Remitente",
+        email:  msg.sender_email  || "",
+        codigo: msg.sender_codigo || null,
+      };
+
+      document.getElementById("msg-detail-subject").textContent = msg.subject;
+      const who = mailTab === "inbox"
+        ? "De: " + (msg.sender_nombre || msg.sender_email)
+        : "Para: " + (msg.recipient_email_ext || "Usuario #" + msg.recipient_id);
+      const fecha = msg.fecha_envio ? msg.fecha_envio.replace("T", " ").slice(0, 16) + " UTC" : "";
+      document.getElementById("msg-detail-meta").textContent = who + "  ·  " + fecha;
+      document.getElementById("msg-detail-body").textContent = msg.body;
+      document.getElementById("msg-verify-result").style.display = "none";
+
+      // Adjuntos
+      const attWrap = document.getElementById("msg-detail-attachments");
+      const attList = document.getElementById("msg-attachments-list");
+      if (msg.attachments && msg.attachments.length) {
+        attList.innerHTML = msg.attachments.map(function(a) {
+          return '<div class="attach-item">'
+            + '<span>📎 ' + a.filename + '</span>'
+            + '<a href="data:' + (a.mime_type||'application/octet-stream') + ';base64,' + a.data_b64
+            + '" download="' + a.filename + '" style="font-size:12px;color:var(--accent);font-weight:600;text-decoration:none">Descargar</a>'
+            + '</div>';
+        }).join("");
+        attWrap.style.display = "block";
+      } else {
+        attWrap.style.display = "none";
+        attList.innerHTML = "";
+      }
+
+      // Mostrar botón verificar solo en recibidos con firma
+      const btnVerify = document.getElementById("btn-verify-sig");
+      btnVerify.style.display = (mailTab === "inbox" && tieneFirma) ? "inline-flex" : "none";
+
+      document.getElementById("message-detail-wrap").style.display = "block";
+
+      if (mailTab === "inbox" && !msg.leido) {
+        await api("/api/v1/messages/" + id + "/read", "PUT");
+        updateInboxBadge();
+        loadMessages();
+      }
+    }
+
+    function closeMessageDetail() {
+      document.getElementById("message-detail-wrap").style.display = "none";
+      openMessageId = null;
+    }
+
+    async function verifySignature() {
+      if (!openMessageId) return;
+      // Limpiar resultado previo en el detalle del mensaje
+      document.getElementById("msg-verify-result").style.display = "none";
+      // Abrir modal de selección de candidatos
+      document.getElementById("verify-modal-result").style.display = "none";
+      document.getElementById("modal-verify-sig").classList.add("open");
+      await loadVerifyCandidates();
+    }
+
+    function closeVerifyModal() {
+      document.getElementById("modal-verify-sig").classList.remove("open");
+    }
+
+    async function loadVerifyCandidates() {
+      const list = document.getElementById("verify-candidates-list");
+      list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px">Cargando identidades...</div>';
+
+      let ok, data;
+      try {
+        ({ ok, data } = await api("/api/v1/identities/verify-candidates"));
+      } catch (e) {
+        list.innerHTML = '<div style="color:var(--danger);font-size:13px;padding:12px">Error de red al cargar identidades.</div>';
+        return;
+      }
+
+      if (!ok) {
+        list.innerHTML = '<div style="color:var(--danger);font-size:13px;padding:12px">'
+          + (data && data.detail ? data.detail : "Error al cargar") + '</div>';
+        return;
+      }
+      if (!Array.isArray(data) || data.length === 0) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px">No hay identidades con certificado activo.</div>';
+        return;
+      }
+
+      const roleColor = { Admin: "var(--accent)", Coordinator: "var(--success)", Operative: "var(--muted)", External: "var(--muted)" };
+      list.innerHTML = data.map(function(u) {
+        const label = u.nombre + (u.codigo ? ' <span style="font-size:11px;color:var(--accent);font-weight:600">· ' + u.codigo + '</span>' : '');
+        return '<div onclick="runVerify(' + u.id + ', \'' + u.nombre.replace(/'/g, "\\'") + '\')" '
+          + 'style="background:var(--bg);border:1px solid var(--border);border-radius:10px;'
+          + 'padding:14px;cursor:pointer;transition:border-color .15s" '
+          + 'onmouseover="this.style.borderColor=\'var(--accent)\'" '
+          + 'onmouseout="this.style.borderColor=\'var(--border)\'">'
+          + '<div style="font-weight:600;font-size:13px;margin-bottom:4px">' + label + '</div>'
+          + '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">' + u.email + '</div>'
+          + '<span style="font-size:10px;font-weight:600;color:' + (roleColor[u.rol] || "var(--muted)") + '">' + u.rol.toUpperCase() + '</span>'
+          + '</div>';
+      }).join("");
+    }
+
+    async function runVerify(candidateId, candidateName) {
+      const result = document.getElementById("verify-modal-result");
+      result.style.display = "none";
+
+      const { ok, data } = await api("/api/v1/messages/" + openMessageId + "/verify?against_id=" + candidateId);
+
+      result.style.display = "block";
+      if (ok) {
+        const color = data.valido ? "#4fb87a" : "#d94f4f";
+        result.style.background = color + "11";
+        result.style.border = "1px solid " + color + "44";
+        result.style.color = data.valido ? "var(--success)" : "var(--danger)";
+        result.innerHTML = "<strong>" + (data.valido ? "✔ Firma válida" : "✖ Firma no corresponde")
+          + "</strong> — " + candidateName
+          + "<br><span style='color:var(--muted);font-size:12px'>" + data.detalle + "</span>";
+
+        // Reflejar también en el detalle del mensaje detrás del modal
+        const msgResult = document.getElementById("msg-verify-result");
+        msgResult.style.display = "block";
+        msgResult.style.background = color + "11";
+        msgResult.style.border = "1px solid " + color + "44";
+        msgResult.style.borderRadius = "8px";
+        msgResult.style.padding = "14px 18px";
+        msgResult.style.color = data.valido ? "var(--success)" : "var(--danger)";
+        msgResult.innerHTML = "<strong>" + (data.valido ? "✔ Firma válida" : "✖ Firma no corresponde")
+          + "</strong> — verificado contra <em>" + candidateName + "</em>"
+          + "<br><span style='color:var(--muted);font-size:12px'>" + data.detalle + "</span>";
+      } else {
+        result.style.background = "#d94f4f11";
+        result.style.border = "1px solid #d94f4f44";
+        result.style.color = "var(--danger)";
+        result.textContent = data.detail || "Error al verificar.";
+      }
+    }
+
+    // ── Redactar ──────────────────────────────────────────────────────────────
+
+    // Almacena adjuntos pendientes de envío: [{filename, mime_type, data_b64, size}]
+    let composeAttachments = [];
+    const ATTACH_MAX = 2 * 1024 * 1024; // 2 MB
+
+    function onAttachFiles(input) {
+      const files = Array.from(input.files);
+      input.value = ""; // reset para permitir seleccionar el mismo archivo otra vez
+      const errEl = document.getElementById("compose-error");
+      errEl.classList.remove("visible");
+
+      files.forEach(function(file) {
+        // Verificar límite total
+        const currentTotal = composeAttachments.reduce(function(s, a) { return s + a.size; }, 0);
+        if (currentTotal + file.size > ATTACH_MAX) {
+          errEl.textContent = "Los adjuntos superarían el límite de 2 MB. Elimina alguno antes de agregar más.";
+          errEl.classList.add("visible");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const dataUrl = e.target.result; // "data:mime;base64,XXXX"
+          const b64 = dataUrl.split(",")[1];
+          composeAttachments.push({ filename: file.name, mime_type: file.type || "application/octet-stream", data_b64: b64, size: file.size });
+          renderAttachList();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderAttachList() {
+      const list = document.getElementById("compose-attach-list");
+      if (!composeAttachments.length) { list.innerHTML = ""; return; }
+      list.innerHTML = composeAttachments.map(function(a, i) {
+        const kb = (a.size / 1024).toFixed(1);
+        return '<div class="attach-item">'
+          + '<span>📎 ' + a.filename + '</span>'
+          + '<span class="attach-size">' + kb + ' KB</span>'
+          + '<button class="attach-remove" onclick="removeAttach(' + i + ')" title="Eliminar">×</button>'
+          + '</div>';
+      }).join("");
+    }
+
+    function removeAttach(idx) {
+      composeAttachments.splice(idx, 1);
+      renderAttachList();
+    }
+
+    async function openComposeModal() {
+      document.getElementById("compose-subject").value = "";
+      document.getElementById("compose-body").value = "";
+      document.getElementById("compose-ext-email").value = "";
+      document.getElementById("compose-error").classList.remove("visible");
+      document.getElementById("compose-ext-link-wrap").style.display = "none";
+      document.getElementById("btn-send-msg").style.display = "";
+      composeAttachments = [];
+      renderAttachList();
+      switchComposeTab("internal");
+
+      // Cargar usuarios si aún no están en memoria (el usuario puede no haber visitado Colaboradores)
+      if (!State.users || State.users.length === 0) {
+        const { ok, data } = await api("/api/v1/identities/");
+        if (ok && Array.isArray(data)) State.users = data;
+      }
+
+      // Poblar el select de destinatarios internos.
+      // Compara por email porque State.user solo tiene email y rol (no id).
+      const sel = document.getElementById("compose-recipient-id");
+      sel.innerHTML = '<option value="">Selecciona un colaborador...</option>';
+      State.users.forEach(function(u) {
+        if (u.email !== State.user.email && u.estado === "ACTIVO") {
+          const opt = document.createElement("option");
+          opt.value = u.id;
+          opt.textContent = u.nombre + " (" + u.email + ")";
+          sel.appendChild(opt);
+        }
+      });
+
+      document.getElementById("modal-compose").classList.add("open");
+    }
+
+    function closeComposeModal() {
+      document.getElementById("modal-compose").classList.remove("open");
+      composeAttachments = [];
+      renderAttachList();
+    }
+
+    function switchComposeTab(tab) {
+      composeTab = tab;
+      const intFields = document.getElementById("compose-internal-fields");
+      const extFields = document.getElementById("compose-external-fields");
+      const btnInt    = document.getElementById("compose-tab-internal");
+      const btnExt    = document.getElementById("compose-tab-external");
+
+      intFields.style.display = tab === "internal" ? "block" : "none";
+      extFields.style.display = tab === "external" ? "block" : "none";
+
+      btnInt.style.background   = tab === "internal" ? "var(--accent)" : "transparent";
+      btnInt.style.color        = tab === "internal" ? "#fff" : "var(--muted)";
+      btnInt.style.borderColor  = tab === "internal" ? "var(--accent)" : "var(--border)";
+      btnExt.style.background   = tab === "external" ? "var(--accent)" : "transparent";
+      btnExt.style.color        = tab === "external" ? "#fff" : "var(--muted)";
+      btnExt.style.borderColor  = tab === "external" ? "var(--accent)" : "var(--border)";
+    }
+
+    async function sendMessage() {
+      const errEl  = document.getElementById("compose-error");
+      const btn    = document.getElementById("btn-send-msg");
+      const subject = document.getElementById("compose-subject").value.trim();
+      const body    = document.getElementById("compose-body").value.trim();
+      errEl.classList.remove("visible");
+
+      if (!subject || !body) {
+        errEl.textContent = "El asunto y el mensaje son obligatorios.";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
+
+      // Adjuntos: sólo metadatos sin el campo size (que es local)
+      const attachPayload = composeAttachments.map(function(a) {
+        return { filename: a.filename, mime_type: a.mime_type, data_b64: a.data_b64 };
+      });
+
+      try {
+        if (composeTab === "internal") {
+          const recipientId = parseInt(document.getElementById("compose-recipient-id").value);
+          if (!recipientId) {
+            errEl.textContent = "Selecciona un destinatario.";
+            errEl.classList.add("visible");
+            return;
+          }
+          const { ok, data } = await api("/api/v1/messages/send/internal", "POST", {
+            recipient_id: recipientId, subject, body, attachments: attachPayload
+          });
+          if (ok) {
+            closeComposeModal();
+            showToast("Mensaje enviado" + (data.firmado ? " y firmado digitalmente." : "."));
+            if (mailTab === "sent") loadMessages();
+          } else {
+            errEl.textContent = data.detail || "Error al enviar.";
+            errEl.classList.add("visible");
+          }
+
+        } else {
+          const extEmail = document.getElementById("compose-ext-email").value.trim();
+          if (!extEmail) {
+            errEl.textContent = "Introduce el email del destinatario externo.";
+            errEl.classList.add("visible");
+            return;
+          }
+          const { ok, data } = await api("/api/v1/messages/send/external", "POST", {
+            recipient_email: extEmail, subject, body, attachments: attachPayload
+          });
+          if (ok) {
+            if (!data.email_enviado && data.enlace_acceso) {
+              document.getElementById("compose-ext-link").textContent = data.enlace_acceso;
+              document.getElementById("compose-ext-link-wrap").style.display = "block";
+              document.getElementById("btn-send-msg").style.display = "none";
+              showToast("Modo desarrollo: enlace generado. Cópialo para probarlo.");
+            } else {
+              closeComposeModal();
+              showToast("Email enviado a " + extEmail + ".");
+            }
+          } else {
+            errEl.textContent = data.detail || "Error al enviar.";
+            errEl.classList.add("visible");
+          }
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Enviar";
+      }
+    }
+
+    // ── S/MIME ────────────────────────────────────────────────────────────────
+
+    let smimeTargetId = null;
+
+    function openSMimeSignModal(id) {
+      smimeTargetId = id;
+      document.getElementById("smime-content").value = "";
+      document.getElementById("smime-result").value = "";
+      document.getElementById("smime-result-wrap").style.display = "none";
+      document.getElementById("smime-sign-error").classList.remove("visible");
+      document.getElementById("modal-smime-sign").classList.add("open");
+    }
+
+    function closeSMimeSignModal() {
+      document.getElementById("modal-smime-sign").classList.remove("open");
+      smimeTargetId = null;
+    }
+
+    async function signSMime() {
+      const content = document.getElementById("smime-content").value.trim();
+      const errEl   = document.getElementById("smime-sign-error");
+      errEl.classList.remove("visible");
+
+      if (!content) {
+        errEl.textContent = "El contenido no puede estar vacío.";
+        errEl.classList.add("visible");
+        return;
+      }
+
+      const btn = document.getElementById("btn-smime-sign");
+      btn.disabled = true;
+      btn.textContent = "Firmando...";
+
+      try {
+        const { ok, data } = await api(`/api/v1/identities/${smimeTargetId}/smime/sign`, "POST", { content });
+        if (!ok) {
+          errEl.textContent = data.detail || "Error al firmar el mensaje.";
+          errEl.classList.add("visible");
+          return;
+        }
+        document.getElementById("smime-result").value = data.signed_message;
+        document.getElementById("smime-result-wrap").style.display = "block";
+        showToast("Mensaje firmado correctamente.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Firmar mensaje";
+      }
+    }
+
+    function copySMimeResult() {
+      const el = document.getElementById("smime-result");
+      el.select();
+      document.execCommand("copy");
+      showToast("Copiado al portapapeles.");
+    }
+
+    // ── Fin S/MIME ────────────────────────────────────────────────────────────
+
+    // Al cargar la página no hay usuario aún; se aplica el default hasta que inicie sesión
+    applyThemeToDOM(PRESETS.default);
+
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("login-pass").addEventListener("keydown", e => {
         if (e.key === "Enter") doLogin();
@@ -1774,7 +3524,91 @@
       });
       tryRestoreSession();
     });
-  </script>
-</body>
+    function openPrivacyModal(tipo) {
+      document.getElementById("modal-privacidad").classList.toggle("open", tipo === "privacidad");
+      document.getElementById("modal-terminos").classList.toggle("open", tipo === "terminos");
+    }
 
+    function closePrivacyModal() {
+      document.getElementById("modal-privacidad").classList.remove("open");
+      document.getElementById("modal-terminos").classList.remove("open");
+    }
+  </script>
+
+<!-- ── Modal Aviso de Privacidad ─────────────────────────────────────────── -->
+<div class="privacy-modal-overlay" id="modal-privacidad" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="privacy-modal">
+    <h2>Aviso de Privacidad</h2>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:12px">Conforme a la Ley Federal de Protección de Datos Personales en Posesión de Particulares (LFPDPPP)</p>
+
+    <h3>Responsable del tratamiento</h3>
+    <p>Casa Monarca, Ayuda Humanitaria al Migrante, A.C. ("Casa Monarca"), con domicilio en Monterrey, Nuevo León, México, es responsable del tratamiento de sus datos personales recabados a través del presente Sistema de Gestión de Identidades (SGI).</p>
+
+    <h3>Datos personales recabados</h3>
+    <ul>
+      <li>Nombre completo</li>
+      <li>Correo electrónico institucional</li>
+      <li>Credenciales de acceso (contraseña cifrada con bcrypt)</li>
+      <li>Material criptográfico (llaves RSA y certificados X.509)</li>
+      <li>Registros de actividad (auditoría de accesos y operaciones)</li>
+      <li>Fecha y hora de consentimiento (Derecho ARCO)</li>
+    </ul>
+
+    <h3>Finalidades del tratamiento</h3>
+    <ul>
+      <li><strong>Primarias:</strong> Gestión de identidades y control de acceso al SGI; emisión y revocación de certificados digitales; autenticación segura con segundo factor (TOTP/MFA); firma y verificación de correos institucionales (S/MIME).</li>
+      <li><strong>Secundarias:</strong> Generación de registros de auditoría para cumplimiento normativo y trazabilidad de operaciones.</li>
+    </ul>
+
+    <h3>Transferencias de datos</h3>
+    <p>Casa Monarca no transfiere datos personales a terceros, salvo obligación legal expresa. Los datos se almacenan en servidores propios o contratados bajo acuerdos de confidencialidad.</p>
+
+    <h3>Derechos ARCO</h3>
+    <p>Usted puede ejercer sus derechos de <strong>Acceso, Rectificación, Cancelación u Oposición</strong> enviando una solicitud al administrador del sistema o al correo institucional designado. La baja definitiva de sus datos requiere consentimiento explícito y es irreversible conforme a lo establecido en el sistema.</p>
+
+    <h3>Consentimiento</h3>
+    <p>El registro en el SGI implica el consentimiento expreso para el tratamiento de datos personales conforme a este aviso. El campo <em>consentimiento_alta</em> registra la fecha y hora exactas del consentimiento otorgado.</p>
+
+    <h3>Cambios al aviso</h3>
+    <p>Cualquier modificación a este aviso será notificada a través del SGI. La versión vigente siempre estará disponible en la pantalla de inicio.</p>
+
+    <button class="btn-close-privacy" onclick="closePrivacyModal()">Entendido</button>
+  </div>
+</div>
+
+<!-- ── Modal Términos y Condiciones ──────────────────────────────────────── -->
+<div class="privacy-modal-overlay" id="modal-terminos" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="privacy-modal">
+    <h2>Términos y Condiciones de Uso</h2>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:12px">Sistema de Gestión de Identidades — Casa Monarca, A.C.</p>
+
+    <h3>1. Aceptación</h3>
+    <p>Al iniciar sesión en el SGI usted acepta los presentes términos. El uso del sistema implica la aceptación plena de estas condiciones.</p>
+
+    <h3>2. Uso autorizado</h3>
+    <p>El SGI es un sistema de uso exclusivo para personal autorizado de Casa Monarca. Queda estrictamente prohibido:</p>
+    <ul>
+      <li>Compartir credenciales de acceso con terceros.</li>
+      <li>Utilizar el sistema para fines ajenos a las actividades institucionales.</li>
+      <li>Intentar acceder a información de identidades fuera del nivel jerárquico propio.</li>
+      <li>Exportar o divulgar material criptográfico (llaves privadas, certificados) sin autorización.</li>
+    </ul>
+
+    <h3>3. Responsabilidad del usuario</h3>
+    <p>Cada usuario es responsable de las acciones realizadas con sus credenciales. Todas las operaciones quedan registradas en el log de auditoría con folio de seguimiento trazable. Ante cualquier sospecha de uso indebido, notifique al administrador de inmediato.</p>
+
+    <h3>4. Clave privada</h3>
+    <p>La clave privada RSA se entrega una única vez al momento del alta. Casa Monarca no puede recuperarla. El usuario es el único custodio responsable de su resguardo seguro.</p>
+
+    <h3>5. Disponibilidad</h3>
+    <p>Casa Monarca no garantiza disponibilidad continua del sistema. El acceso puede ser suspendido por mantenimiento, razones de seguridad o incumplimiento de estos términos.</p>
+
+    <h3>6. Legislación aplicable</h3>
+    <p>Estos términos se rigen por las leyes de los Estados Unidos Mexicanos. Cualquier controversia será resuelta ante los tribunales competentes de Monterrey, Nuevo León.</p>
+
+    <button class="btn-close-privacy" onclick="closePrivacyModal()">Aceptar</button>
+  </div>
+</div>
+
+</body>
 </html>

@@ -1,29 +1,47 @@
 # Punto de entrada de la aplicación FastAPI.
-# Inicializa la base de datos, aplica migraciones ligeras y registra todos los routers.
+# Inicializa la base de datos y registra todos los routers.
 
+import os
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from app.routers import identity
-from app.db.database import engine, Base, SessionLocal
-from app.models.identity import Identity, AuditLog
+from app.db.database import engine, Base, SessionLocal, expire_stale_identities, migrate_codigos
+from app.models.identity import Identity, AuditLog, Message
 from sqlalchemy import text
 
 # Crea todas las tablas que aún no existan en la base de datos
 Base.metadata.create_all(bind=engine)
 
-# Migraciones manuales: agrega columnas nuevas sin perder datos existentes.
-# SQLite no soporta ALTER TABLE complejo, por eso usamos ADD COLUMN individual.
-with engine.connect() as _conn:
-    for _col_sql in [
-        "ALTER TABLE identities ADD COLUMN cert_expires_at DATETIME",
-        "ALTER TABLE identities ADD COLUMN cert_revalidado BOOLEAN DEFAULT 0",
-        "ALTER TABLE identities ADD COLUMN private_key_pem_encrypted TEXT",
-    ]:
-        try:
-            _conn.execute(text(_col_sql))
-            _conn.commit()
-        except Exception:
-            pass  # La columna ya existe; ignoramos el error de duplicado
+# Migraciones ligeras para SQLite: agrega columnas nuevas sin perder datos existentes.
+# MySQL no las necesita porque create_all ya genera el esquema completo desde cero.
+# Cada ADD COLUMN falla silenciosamente si la columna ya existe.
+if os.environ.get("DB_ENGINE", "sqlite").lower() == "sqlite":
+    with engine.connect() as _conn:
+        for _sql in [
+            "ALTER TABLE identities ADD COLUMN cert_expires_at DATETIME",
+            "ALTER TABLE identities ADD COLUMN cert_revalidado BOOLEAN DEFAULT 0",
+            "ALTER TABLE identities ADD COLUMN private_key_pem_encrypted TEXT",
+            "ALTER TABLE identities ADD COLUMN mfa_enabled BOOLEAN DEFAULT 0",
+            "ALTER TABLE identities ADD COLUMN totp_secret_encrypted TEXT",
+            "ALTER TABLE identities ADD COLUMN consentimiento_alta BOOLEAN",
+            "ALTER TABLE identities ADD COLUMN fecha_consentimiento_alta DATETIME",
+            # Tabla messages: create_all la crea entera si no existe;
+            # los ALTER solo cubren el caso de que ya existiera una versión anterior.
+            "ALTER TABLE messages ADD COLUMN external_token_used BOOLEAN DEFAULT 0",
+            "ALTER TABLE messages ADD COLUMN leido BOOLEAN DEFAULT 0",
+            # Claves visibles y folios de seguimiento (versión 2.x)
+            "ALTER TABLE identities ADD COLUMN codigo TEXT",
+            "ALTER TABLE audit_logs ADD COLUMN ticket TEXT",
+            "ALTER TABLE audit_logs ADD COLUMN identity_codigo TEXT",
+            "ALTER TABLE audit_logs ADD COLUMN actor_codigo TEXT",
+            # Adjuntos en mensajes (versión 2.x)
+            "ALTER TABLE messages ADD COLUMN attachments_json TEXT",
+        ]:
+            try:
+                _conn.execute(text(_sql))
+                _conn.commit()
+            except Exception:
+                pass  # La columna ya existe; ignoramos el error
 
 app = FastAPI(
     title="Gestor de Identidades API",
@@ -39,13 +57,14 @@ def serve_frontend():
         return f.read()
 
 
-from app.routers import identity, auth
+from app.routers import identity, auth, messages
 
 
 @app.on_event("startup")
-def cleanup_lower_level_certs():
-    # Al arrancar, limpiamos cualquier certificado que pudiera haberse colado
-    # en identidades de nivel bajo (Operative y External no deben tener certs).
+def startup_cleanup():
+    # Al arrancar:
+    # 1. Limpia certificados en roles que no deben tenerlos.
+    # 2. Expira cuentas efímeras (External/Operative) cuyo plazo venció.
     db = SessionLocal()
     try:
         db.query(Identity).filter(Identity.rol.in_(["Operative", "External"])).update(
@@ -53,13 +72,26 @@ def cleanup_lower_level_certs():
             synchronize_session=False
         )
         db.commit()
+        migrate_codigos(db)
+        n = expire_stale_identities(db)
+        if n:
+            print("[startup] {} identidad(es) efímera(s) marcadas como BAJA por expiración.".format(n))
     finally:
         db.close()
 
 
 # Registro de routers con sus prefijos de URL
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
+app.include_router(auth.router,     prefix="/api/v1/auth",      tags=["Auth"])
 app.include_router(identity.router, prefix="/api/v1/identities", tags=["Identities"])
+app.include_router(messages.router, prefix="/api/v1/messages",   tags=["Messages"])
+
+
+@app.get("/mensaje-externo", response_class=HTMLResponse, include_in_schema=False)
+def mensaje_externo_redirect(token: str = ""):
+    # Redirige la URL amigable del email al endpoint del router de mensajes.
+    # Permite que el enlace enviado por correo sea legible: /mensaje-externo?token=xyz
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/api/v1/messages/externo/{}".format(token))
 
 
 @app.get("/health", tags=["General"])

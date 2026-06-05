@@ -18,3 +18,10 @@ python-multipart==0.0.5
 
 # Utilidades
 email-validator==1.1.3
+
+# Autenticación multifactor (TOTP)
+pyotp==2.6.0
+
+# Backports requeridos por FastAPI con yield en Python 3.6
+async-exit-stack==1.0.1
+async-generator==1.10
